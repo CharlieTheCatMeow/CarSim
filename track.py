@@ -17,8 +17,25 @@ class Track:
 		self.mask_surface.fill((40, 120, 40))
 		self._draw_track(self.mask_surface, (255, 255, 255))
 		
-	def _draw_track(self, surface, color):
+	def _draw_track(self, surface, color, corner_rounding = 0.9):
 		points = self.waypoints
+		
+		for _ in range(3):
+			if corner_rounding == 1:
+				return
+			chaikin_points = []
+			length_points = len(points)
+			for i in range(length_points):
+				point0 = points[i]
+				point1 = points[(i + 1) % length_points]
+				
+				q = (corner_rounding * point0[0] + (1 - corner_rounding) * point1[0], corner_rounding * point0[1] + (1 - corner_rounding) * point1[1])
+				r = ((1 - corner_rounding) * point0[0] + corner_rounding * point1[0], (1 - corner_rounding) * point0[1] + corner_rounding * point1[1])
+				
+				chaikin_points.append(q)
+				chaikin_points.append(r)
+			points = chaikin_points
+		
 		half_width = self.road_width / 2
 		for a, b in zip(points, points[1:] + points[:1]):
 			dx = b[0] - a[0]

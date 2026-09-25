@@ -12,14 +12,14 @@ class Track:
 			(1080, 360), (950, 560), (600, 610), (300, 560)
 		]
 		self.road_width = 80
+		self.smoothed_points = self._chaikin_smoothing(self.waypoints)
 		
 		self.mask_surface = pygame.Surface((self.width, self.height))
 		self.mask_surface.fill((40, 120, 40))
 		self._draw_track(self.mask_surface, (255, 255, 255))
-		
-	def _draw_track(self, surface, color, corner_rounding = 0.9):
-		points = self.waypoints
-		
+	
+	# Using the chaikin thingy to smooth the track points, looks bad otherwise
+	def _chaikin_smoothing(self, points, corner_rounding = 0.9, iterations = 3):
 		for _ in range(3):
 			if corner_rounding == 1:
 				return
@@ -35,12 +35,19 @@ class Track:
 				chaikin_points.append(q)
 				chaikin_points.append(r)
 			points = chaikin_points
+		return points
+	
+	# Draw the track
+	def _draw_track(self, surface, color):
+		points = self.smoothed_points
 		
 		half_width = self.road_width / 2
 		for a, b in zip(points, points[1:] + points[:1]):
 			dx = b[0] - a[0]
 			dy = b[1] - a[1]
 			length = math.hypot(dx, dy)
+			if length == 0:
+				continue
 			nx = -dy / length
 			ny = dx / length
 			quad = [
@@ -55,5 +62,47 @@ class Track:
 	def draw(self, screen):
 		screen.blit(self.mask_surface, (0, 0))
 		
+	# Check if car is on track
+	def is_on_track(self, x, y):
+		if self._distance_to_centerline(x, y) > self.road_width / 2:
+			return False
+		return True
+
+	def _distance_to_centerline(self, x, y):
+		points = self.smoothed_points
+		closest_distance = float("inf")
+		for a, b in zip(points, points[1:] + points[:1]):
+			px, py, distance = self._distance_to_track_center(x, y, a, b)
+			closest_distance = min(closest_distance, distance)
+		return closest_distance
+		
+	def closest_point(self, x, y):
+		points = self.smoothed_points
+		closest_point = None
+		closest_distance = float("inf")
+		for a, b in zip(points, points[1:] + points[:1]):
+			point_x, point_y, distance = self._distance_to_track_center(x, y, a, b)
+			if distance < closest_distance:
+				closest_distance = distance
+				closest_point = (point_x, point_y)
+		return closest_point
+		
+	@staticmethod
+	def _distance_to_track_center(point_x, point_y, point_a, point_b):
+		ax, ay = point_a
+		bx, by = point_b
+		dx, dy = bx - ax, by - ay
+		length_squared = dx**2 + dy**2
+		
+		if length_squared == 0:
+			return math.hypot(point_x - ax, point_y - ay)
+		
+		t = ((point_x-ax) * dx + (point_y - ay) * dy) / length_squared
+		t = max(0.0, min(1.0, t))
+		
+		closest_x = ax + t * dx
+		closest_y = ay + t * dy
+		distance = math.hypot(point_x - closest_x, point_y - closest_y)
+		return closest_x, closest_y, distance
 		
 		

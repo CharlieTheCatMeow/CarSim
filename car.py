@@ -10,7 +10,7 @@ class Car:
 		self.drag = 0.5
 		self.max_speed = 400
 		self.max_reverse_speed = -80
-		self.turn_rate = 2.6
+		self.turn_rate = 4.0
 		self.brake_force = 450.0
 		self.accel = 250.0
 		

@@ -16,6 +16,8 @@ class Car:
 		
 		self.length, self.width = 34, 18
 		self.alive = True
+		self.laps_completed = 0
+		self.next_checkpoint_index = 0
 		
 	def reset(self, x, y, heading = 0.0):
 		self.x, self.y = x, y

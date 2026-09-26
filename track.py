@@ -13,6 +13,7 @@ class Track:
 		]
 		self.road_width = 80
 		self.smoothed_points = self._chaikin_smoothing(self.waypoints)
+		self.checkpoints = self._create_checkpoints()
 		
 		self.mask_surface = pygame.Surface((self.width, self.height))
 		self.mask_surface.fill((40, 120, 40))
@@ -104,5 +105,47 @@ class Track:
 		closest_y = ay + t * dy
 		distance = math.hypot(point_x - closest_x, point_y - closest_y)
 		return closest_x, closest_y, distance
+	
+	# Checkpoints
+	def _create_checkpoints(self):
+		checkpoints_step = len(self.smoothed_points) // len(self.waypoints)
+		return [self.smoothed_points[i * checkpoints_step] for i in range(len(self.waypoints))]
+	
+	def count_checkpoints(self, x, y, next_checkpoint_index):
+		if next_checkpoint_index >= len(self.checkpoints):
+			return next_checkpoint_index, True
 		
+		target = self.checkpoints[next_checkpoint_index]
+		if self._distance_to_track_checkpoint(x, y, target) < self.road_width / 1.8:
+			next_checkpoint_index += 1
+			print(f"Checkpoint {next_checkpoint_index} reached!")
+			if next_checkpoint_index == len(self.checkpoints):
+				next_checkpoint_index = 0
+				return next_checkpoint_index, True
+		return next_checkpoint_index, False
+	
+	@staticmethod
+	def _distance_to_track_checkpoint(point_x, point_y, checkpoint):
+		ax, ay = checkpoint
+		dx, dy = ax - point_x, ay - point_y
+		distance = math.hypot(dx, dy)
+		return distance
 		
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	

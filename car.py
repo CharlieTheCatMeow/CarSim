@@ -3,10 +3,12 @@ import pygame
 
 class Car:
 	def __init__(self, x, y, heading = 0.0):
+		# Things that change
 		self.x, self.y = x, y
 		self.heading = heading
 		self.speed = 0.0
 		
+		# Stats
 		self.drag = 0.5
 		self.max_speed = 400
 		self.max_reverse_speed = -80
@@ -14,6 +16,12 @@ class Car:
 		self.brake_force = 450.0
 		self.accel = 250.0
 		
+		# Ray casting stuff
+		self.ray_count = 5
+		self.fov = math.radians(120)
+		self.ray_length = 200
+		
+		# Also things that change but not really
 		self.length, self.width = 34, 18
 		self.alive = True
 		self.laps_completed = 0
@@ -24,7 +32,11 @@ class Car:
 		self.heading = heading
 		self.speed = 0.0
 		self.alive = True
+		self.laps_completed = 0
+		self.next_checkpoint_index = 0
 		
+	# Drive the car
+	# Negative throttle is basically breaking
 	def update(self, throttle, steering, dt):
 		if not self.alive:
 			return
@@ -52,7 +64,19 @@ class Car:
 		
 		self.x += math.cos(self.heading) * self.speed * dt
 		self.y += math.sin(self.heading) * self.speed * dt
-		
+	
+	# Uh I think this is where the ray casting stuff goes (For AI later on)
+	# Lets hope I don't forget to delete the "for AI later on" part when I actually add it
+	def cast_rays(self, track, ray_count = 5, fov = math.radians(120), ray_length = 200):
+		ray_distances = []
+		start_angle = self.heading - fov / 2
+		for i in range(ray_count):
+			ray_angle = start_angle + fov * (i / (ray_count - 1))
+			distance = track.cast_ray(self.x, self.y, ray_angle, ray_length)
+			ray_distances.append(distance / ray_length)
+		return ray_distances
+	
+	# Draw the car
 	def draw(self, screen, color = (0, 155, 155)):
 		surface = pygame.Surface((self.length, self.width), pygame.SRCALPHA)
 		surface.fill(color)

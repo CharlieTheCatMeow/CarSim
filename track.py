@@ -13,7 +13,7 @@ class Track:
 		]
 		self.road_width = 80
 		self.smoothed_points = self._chaikin_smoothing(self.waypoints)
-		self.checkpoints = self._create_checkpoints()
+		self.checkpoints = self._create_checkpoints(50)
 		
 		self.mask_surface = pygame.Surface((self.width, self.height))
 		self.mask_surface.fill((40, 120, 40))
@@ -107,9 +107,43 @@ class Track:
 		return closest_x, closest_y, distance
 	
 	# Checkpoints
-	def _create_checkpoints(self):
-		checkpoints_step = len(self.smoothed_points) // len(self.waypoints)
-		return [self.smoothed_points[i * checkpoints_step] for i in range(len(self.waypoints))]
+	def _create_checkpoints(self, checkpoint_count = 50):
+		points = self.smoothed_points
+		total_length = self._total_track_length()
+		spacing = total_length / checkpoint_count
+		
+		checkpoints = [points[0]]
+		accumulated = 0.0
+		
+		for a, b in zip(points, points[1:] + points[:1]):
+			segment_dx = b[0] - a[0]
+			segment_dy = b[1] - a[1]
+			segment_length = math.hypot(segment_dx, segment_dy)
+			if segment_length == 0:
+				continue
+				
+			segment_start = accumulated
+			segment_end = accumulated + segment_length
+			accumulated += segment_length
+			while len(checkpoints) < checkpoint_count:
+				next_threshold = len(checkpoints) * spacing
+				if next_threshold > segment_end:
+					break
+				t = (next_threshold - segment_start) / segment_length
+				checkpoint_x = a[0] + t * segment_dx
+				checkpoint_y = a[1] + t * segment_dy
+				checkpoints.append((checkpoint_x, checkpoint_y))
+			if len(checkpoints) >= checkpoint_count:
+				break
+		return checkpoints
+	
+	# Self-explanatory
+	def _total_track_length(self):
+		points = self.smoothed_points
+		total = 0.0
+		for a, b in zip(points, points[1:] + points[:1]):
+			total += math.hypot(b[0] - a[0], b[1] - a[1])
+		return total
 	
 	def count_checkpoints(self, x, y, next_checkpoint_index):
 		if next_checkpoint_index >= len(self.checkpoints):
@@ -130,6 +164,20 @@ class Track:
 		dx, dy = ax - point_x, ay - point_y
 		distance = math.hypot(dx, dy)
 		return distance
+	
+	# Ray casting stuff for AI later on (Hope this works and is actually useful)
+	def cast_ray(self, x, y, angle, length, step = 4):
+		dx = math.cos(angle)
+		dy = math.sin(angle)
+		distance = 0
+		while distance < length:
+			point_x = x + dx * distance
+			point_y = y + dy * distance
+			if not self.is_on_track(point_x, point_y):
+				return distance
+			distance += step
+		return length
+		
 		
 	
 	

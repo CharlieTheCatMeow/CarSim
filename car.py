@@ -27,6 +27,9 @@ class Car:
 		self.laps_completed = 0
 		self.next_checkpoint_index = 0
 		
+		# For RL
+		self.fitness = 0.0
+		
 	def reset(self, x, y, heading = 0.0):
 		self.x, self.y = x, y
 		self.heading = heading
@@ -34,6 +37,7 @@ class Car:
 		self.alive = True
 		self.laps_completed = 0
 		self.next_checkpoint_index = 0
+		self.fitness = 0.0
 		
 	# Drive the car
 	# Negative throttle is basically breaking
@@ -78,6 +82,8 @@ class Car:
 	
 	# Draw the car
 	def draw(self, screen, color = (0, 155, 155)):
+		if not self.alive:
+			return
 		surface = pygame.Surface((self.length, self.width), pygame.SRCALPHA)
 		surface.fill(color)
 		rotated = pygame.transform.rotate(surface, -math.degrees(self.heading))

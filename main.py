@@ -57,8 +57,9 @@ while running:
 			pygame.draw.line(screen, (255, 0, 0), (car.x, car.y), closest_point, 2)
 		
 		# Checkpoints and stuff
-		car.next_checkpoint_index = track_object.count_checkpoints(car.x, car.y, car.next_checkpoint_index)[0]
-		if track_object.count_checkpoints(car.x, car.y, car.next_checkpoint_index)[1]:
+		car.next_checkpoint_index, lap_completed = track_object.count_checkpoints(car.x, car.y, car.next_checkpoint_index)
+		if lap_completed:
+			print("Lap completed: " + str(car.laps_completed + 1))
 			car.laps_completed += 1
 
 	#Stuff

@@ -8,12 +8,31 @@ class Track:
 		self.height = height
 		
 		self.waypoints = [
-			(200, 360), (300, 180), (600, 120), (950, 180),
-			(1080, 360), (950, 560), (600, 610), (300, 560)
+			(150, 450),
+			(950, 450),
+			(1120, 400),
+			(1150, 280),
+			(1080, 160),
+			(900, 90),
+			(650, 110),
+			(600, 220),
+			(680, 300),
+			(560, 360),
+			(480, 280),
+			(380, 340),
+			(300, 460),
+			(380, 560),
+			(300, 600),
+			(200, 540),
 		]
-		self.road_width = 80
+		
+		self.road_width = 40
 		self.smoothed_points = self._chaikin_smoothing(self.waypoints)
-		self.checkpoints = self._create_checkpoints(50)
+		self._segments = list(zip(self.smoothed_points, self.smoothed_points[1:] + self.smoothed_points[:1]))
+		self.checkpoints = self._create_checkpoints(150)
+		
+		self.grid_cell_size = 10
+		self._track_grid = self._create_track_grid()
 		
 		self.mask_surface = pygame.Surface((self.width, self.height))
 		self.mask_surface.fill((40, 120, 40))
@@ -23,7 +42,7 @@ class Track:
 	def _chaikin_smoothing(self, points, corner_rounding = 0.9, iterations = 3):
 		for _ in range(3):
 			if corner_rounding == 1:
-				return
+				return points
 			chaikin_points = []
 			length_points = len(points)
 			for i in range(length_points):
@@ -43,7 +62,7 @@ class Track:
 		points = self.smoothed_points
 		
 		half_width = self.road_width / 2
-		for a, b in zip(points, points[1:] + points[:1]):
+		for a, b in self._segments:
 			dx = b[0] - a[0]
 			dy = b[1] - a[1]
 			length = math.hypot(dx, dy)
@@ -63,16 +82,30 @@ class Track:
 	def draw(self, screen):
 		screen.blit(self.mask_surface, (0, 0))
 		
+	# Do a grid of the track first for performance?
+	def _create_track_grid(self):
+		columns = self.width // self.grid_cell_size + 1
+		rows = self.height // self.grid_cell_size + 1
+		grid = [[False] * rows for _ in range(columns)]
+		for x in range(columns):
+			for y in range(rows):
+				cell_x = x * self.grid_cell_size
+				cell_y = y * self.grid_cell_size
+				grid[x][y] = self._distance_to_centerline(cell_x, cell_y) <= self.road_width / 2
+		return grid
+	
 	# Check if car is on track
 	def is_on_track(self, x, y):
-		if self._distance_to_centerline(x, y) > self.road_width / 2:
-			return False
-		return True
+		cell_x = int(x) // self.grid_cell_size
+		cell_y = int(y) // self.grid_cell_size
+		if 0 <= cell_x < len(self._track_grid) and 0 <= cell_y < len(self._track_grid[0]):
+			return self._track_grid[cell_x][cell_y]
+		return False
 
 	def _distance_to_centerline(self, x, y):
 		points = self.smoothed_points
 		closest_distance = float("inf")
-		for a, b in zip(points, points[1:] + points[:1]):
+		for a, b in self._segments:
 			px, py, distance = self._distance_to_track_center(x, y, a, b)
 			closest_distance = min(closest_distance, distance)
 		return closest_distance
@@ -81,7 +114,7 @@ class Track:
 		points = self.smoothed_points
 		closest_point = None
 		closest_distance = float("inf")
-		for a, b in zip(points, points[1:] + points[:1]):
+		for a, b in self._segments:
 			point_x, point_y, distance = self._distance_to_track_center(x, y, a, b)
 			if distance < closest_distance:
 				closest_distance = distance
@@ -115,7 +148,7 @@ class Track:
 		checkpoints = [points[0]]
 		accumulated = 0.0
 		
-		for a, b in zip(points, points[1:] + points[:1]):
+		for a, b in self._segments:
 			segment_dx = b[0] - a[0]
 			segment_dy = b[1] - a[1]
 			segment_length = math.hypot(segment_dx, segment_dy)
@@ -141,7 +174,7 @@ class Track:
 	def _total_track_length(self):
 		points = self.smoothed_points
 		total = 0.0
-		for a, b in zip(points, points[1:] + points[:1]):
+		for a, b in self._segments:
 			total += math.hypot(b[0] - a[0], b[1] - a[1])
 		return total
 	
@@ -152,7 +185,6 @@ class Track:
 		target = self.checkpoints[next_checkpoint_index]
 		if self._distance_to_track_checkpoint(x, y, target) < self.road_width / 1.8:
 			next_checkpoint_index += 1
-			print(f"Checkpoint {next_checkpoint_index} reached!")
 			if next_checkpoint_index == len(self.checkpoints):
 				next_checkpoint_index = 0
 				return next_checkpoint_index, True
@@ -166,7 +198,7 @@ class Track:
 		return distance
 	
 	# Ray casting stuff for AI later on (Hope this works and is actually useful)
-	def cast_ray(self, x, y, angle, length, step = 4):
+	def cast_ray(self, x, y, angle, length, step = 8):
 		dx = math.cos(angle)
 		dy = math.sin(angle)
 		distance = 0

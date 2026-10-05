@@ -1,6 +1,8 @@
 import math
 import pygame
 
+import brain
+
 class Car:
 	def __init__(self, x, y, heading = 0.0):
 		# Things that change
@@ -28,6 +30,7 @@ class Car:
 		self.next_checkpoint_index = 0
 		
 		# For RL
+		self.brain = brain.Brain(input_size = 7, hidden_size = 10, output_size = 2)
 		self.fitness = 0.0
 		
 	def reset(self, x, y, heading = 0.0):
@@ -80,6 +83,23 @@ class Car:
 			ray_distances.append(distance / ray_length)
 		return ray_distances
 	
+	# Angle to next checkpoint for the neural thing as an input
+	def angle_to_next_checkpoint(self, track):
+		target = track.checkpoints[self.next_checkpoint_index]
+		dx = target[0] - self.x
+		dy = target[1] - self.y
+		angle_to_target = math.atan2(dy, dx)
+		angle_to_target = (angle_to_target + math.pi) % (2 * math.pi) - math.pi
+		return angle_to_target
+	
+	def get_inputs(self, rays, track):
+		output = []
+		for ray in rays:
+			output.append(max(0.0, min(1.0, ray)))
+		output.append(self.speed)
+		output.append(self.angle_to_next_checkpoint(track))
+		return output
+
 	# Draw the car
 	def draw(self, screen, color = (0, 155, 155)):
 		if not self.alive:

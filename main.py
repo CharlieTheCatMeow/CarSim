@@ -8,12 +8,14 @@ import track
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 
-CAR_STUCK_TIME = 1.0
+CAR_STUCK_TIME = 4.0
 
 car_count = 100
 simulation_speed = 1
 time_per_generation = 20.0
 timer = time_per_generation
+
+highest_fitness = 0.0
 
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -71,8 +73,13 @@ while running:
 				car.alive = False
 			
 			# Fitness because cars have to be fit
-			car.fitness = car.next_checkpoint_index + car.laps_completed * len(track_object.checkpoints)
+			if car.next_checkpoint_index > 0:
+				average_time_per_checkpoint = car.time_alive / car.next_checkpoint_index
+				car.fitness = (car.next_checkpoint_index + car.laps_completed * len(track_object.checkpoints) - average_time_per_checkpoint * 0.1)
+			else:
+				car.fitness = -car.time_alive
 			
+			# Laps
 			if car.lap_completed:
 				print("Lap completed: " + str(car.laps_completed + 1))
 				car.laps_completed += 1
@@ -105,11 +112,13 @@ while running:
 	# HUD
 	cars_alive_count = sum(1 for car in cars if car.alive)
 	best_fitness = max((car.fitness for car in cars), default=0.0)
-	
+	if best_fitness > highest_fitness:
+		highest_fitness = best_fitness
 	HUD_lines = [
 		f"Generation: {generation_count}",
 		f"Cars Alive: {cars_alive_count} / {len(cars)}",
 		f"Best Fitness: {best_fitness:.1f}",
+		f"Highest Fitness: {highest_fitness:.1f}",
 		f"Timer: {max(0.0, timer):.1f}",
 		f"Simulation Speed (press 1, 2, 3 or 4): {simulation_speed}x"
 	]

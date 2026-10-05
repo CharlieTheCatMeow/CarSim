@@ -21,11 +21,12 @@ class Car:
 		# Ray casting stuff
 		self.ray_count = 5
 		self.fov = math.radians(120)
-		self.ray_length = 200
+		self.ray_length = 300
 		
 		# Also things that change but not really
 		self.length, self.width = 34, 18
 		self.alive = True
+		self.time_alive = 0.0
 		self.laps_completed = 0
 		self.next_checkpoint_index = 0
 		self.time_since_last_checkpoint = 0.0
@@ -75,6 +76,7 @@ class Car:
 		self.y += math.sin(self.heading) * self.speed * dt
 		
 		self.time_since_last_checkpoint += dt
+		self.time_alive += dt
 	
 	# Uh I think this is where the ray casting stuff goes (For AI later on)
 	# Lets hope I don't forget to delete the "for AI later on" part when I actually add it
@@ -100,8 +102,8 @@ class Car:
 		output = []
 		for ray in rays:
 			output.append(max(0.0, min(1.0, ray)))
-		output.append(self.speed)
-		output.append(self.angle_to_next_checkpoint(track))
+		output.append(self.speed / self.max_speed)
+		output.append(self.angle_to_next_checkpoint(track) / math.pi)
 		return output
 
 	# Draw the car

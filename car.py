@@ -28,6 +28,7 @@ class Car:
 		self.alive = True
 		self.laps_completed = 0
 		self.next_checkpoint_index = 0
+		self.time_since_last_checkpoint = 0.0
 		
 		# For RL
 		self.brain = brain.Brain(input_size = 7, hidden_size = 10, output_size = 2)
@@ -40,6 +41,7 @@ class Car:
 		self.alive = True
 		self.laps_completed = 0
 		self.next_checkpoint_index = 0
+		self.time_since_last_checkpoint = 0.0
 		self.fitness = 0.0
 		
 	# Drive the car
@@ -71,6 +73,8 @@ class Car:
 		
 		self.x += math.cos(self.heading) * self.speed * dt
 		self.y += math.sin(self.heading) * self.speed * dt
+		
+		self.time_since_last_checkpoint += dt
 	
 	# Uh I think this is where the ray casting stuff goes (For AI later on)
 	# Lets hope I don't forget to delete the "for AI later on" part when I actually add it

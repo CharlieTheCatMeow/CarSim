@@ -15,6 +15,8 @@ simulation_speed = 1
 time_per_generation = 20.0
 timer = time_per_generation
 
+show_best_car = False
+
 highest_fitness = 0.0
 
 pygame.init()
@@ -47,6 +49,8 @@ while running:
 				simulation_speed = 15
 			elif event.key == pygame.K_4:
 				simulation_speed = 30
+			elif event.key == pygame.K_h:
+				show_best_car = not show_best_car
 	
 	for _ in range(simulation_speed):
 		for car in cars:
@@ -106,8 +110,14 @@ while running:
 	# Drawing cars and track
 	screen.fill((0, 0, 0))
 	track_object.draw(screen)
+	best_car = max(cars, key=lambda c: c.fitness)
 	for car in cars:
-		car.draw(screen)
+		if show_best_car and car != best_car:
+			continue
+		if car is best_car:
+			car.draw(screen, (255, 0, 0))
+		else:
+			car.draw(screen)
 	
 	# HUD
 	cars_alive_count = sum(1 for car in cars if car.alive)
@@ -124,7 +134,7 @@ while running:
 	]
 	
 	for i, line in enumerate(HUD_lines):
-		text_surface = font.render(line, True, (0, 0, 0))
+		text_surface = font.render(line, True, (255, 255, 255))
 		screen.blit(text_surface, (10, 10 + i * 30))
 	
 	#Stuff

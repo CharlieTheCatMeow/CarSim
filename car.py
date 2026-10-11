@@ -14,7 +14,7 @@ class Car:
 		self.drag = 0.5
 		self.max_speed = 400
 		self.max_reverse_speed = -80
-		self.turn_rate = 4.0
+		self.turn_rate = 7.0
 		self.brake_force = 450.0
 		self.accel = 250.0
 		
@@ -24,7 +24,7 @@ class Car:
 		self.ray_length = 300
 		
 		# Also things that change but not really
-		self.length, self.width = 34, 18
+		self.length, self.width = 28, 14
 		self.alive = True
 		self.time_alive = 0.0
 		self.laps_completed = 0
@@ -109,7 +109,7 @@ class Car:
 	# Draw the car
 	def draw(self, screen, color = (0, 155, 155)):
 		if not self.alive:
-			return
+			color = (70, 70, 70)
 		surface = pygame.Surface((self.length, self.width), pygame.SRCALPHA)
 		surface.fill(color)
 		rotated = pygame.transform.rotate(surface, -math.degrees(self.heading))

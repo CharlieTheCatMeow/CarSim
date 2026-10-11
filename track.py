@@ -26,7 +26,7 @@ class Track:
 			(200, 540),
 		]
 		
-		self.road_width = 40
+		self.road_width = 60
 		self.smoothed_points = self._chaikin_smoothing(self.waypoints)
 		self._segments = list(zip(self.smoothed_points, self.smoothed_points[1:] + self.smoothed_points[:1]))
 		self.checkpoints = self._create_checkpoints(150)

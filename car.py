@@ -94,7 +94,7 @@ class Car:
 		target = track.checkpoints[self.next_checkpoint_index]
 		dx = target[0] - self.x
 		dy = target[1] - self.y
-		angle_to_target = math.atan2(dy, dx)
+		angle_to_target = math.atan2(dy, dx) - self.heading
 		angle_to_target = (angle_to_target + math.pi) % (2 * math.pi) - math.pi
 		return angle_to_target
 	

@@ -48,7 +48,7 @@ while running:
 			elif event.key == pygame.K_3:
 				simulation_speed = 15
 			elif event.key == pygame.K_4:
-				simulation_speed = 30
+				simulation_speed = 40
 			elif event.key == pygame.K_h:
 				show_best_car = not show_best_car
 	

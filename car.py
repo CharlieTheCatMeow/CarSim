@@ -11,12 +11,12 @@ class Car:
 		self.speed = 0.0
 		
 		# Stats
-		self.drag = 0.5
-		self.max_speed = 400
+		self.drag = 0.3
+		self.max_speed = 600
 		self.max_reverse_speed = -80
 		self.turn_rate = 7.0
 		self.brake_force = 450.0
-		self.accel = 250.0
+		self.accel = 150.0
 		
 		# Ray casting stuff
 		self.ray_count = 5

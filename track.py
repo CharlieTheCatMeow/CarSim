@@ -35,8 +35,8 @@ class Track:
 		self._track_grid = self._create_track_grid()
 		
 		self.mask_surface = pygame.Surface((self.width, self.height))
-		self.mask_surface.fill((40, 120, 40))
-		self._draw_track(self.mask_surface, (255, 255, 255))
+		self.mask_surface.fill((85, 128, 85))
+		self._draw_track(self.mask_surface, (44, 47, 51))
 	
 	# Using the chaikin thingy to smooth the track points, looks bad otherwise
 	def _chaikin_smoothing(self, points, corner_rounding = 0.9, iterations = 3):

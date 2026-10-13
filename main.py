@@ -4,6 +4,7 @@ import math
 
 import car
 import track
+import menu_stuff
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -29,6 +30,15 @@ running = True
 font = pygame.font.SysFont("Consolas", 20)
 title_font = pygame.font.SysFont("Consolas", 48)
 menu_font = pygame.font.SysFont("Consolas", 24)
+
+def create_pause_menu_buttons():
+	center_screen_x = SCREEN_WIDTH / 2
+	return [
+		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Resume", menu_font, "resume"),
+		menu_stuff.Button((center_screen_x - 100, 410, 200, 40), "Quit", menu_font, "quit")
+	]
+pause_menu_buttons = create_pause_menu_buttons()
+
 generation_count = 1
 
 track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -61,9 +71,14 @@ while running:
 					simulation_speed = 40
 				elif event.key == pygame.K_h:
 					show_best_car = not show_best_car
-			elif game_state == "paused":
-				if event.key == pygame.K_q:
-					running = False
+		elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+			if game_state == "paused":
+				for button in pause_menu_buttons:
+					if button.is_clicked(event.pos):
+						if button.action == "resume":
+							game_state = "playing"
+						elif button.action == "quit":
+							running = False
 	
 	if game_state == "playing":
 		for _ in range(simulation_speed):
@@ -162,13 +177,9 @@ while running:
 		title_surface = title_font.render("PAUSED", True, (255, 255, 255))
 		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
 		
-		menu_lines = [
-			"ESC - Resume",
-			"Q - Quit",
-		]
-		for i, line in enumerate(menu_lines):
-			text_surface = menu_font.render(line, True, (255, 255, 255))
-			screen.blit(text_surface, text_surface.get_rect(center=(SCREEN_WIDTH // 2, 340 + i * 36)))
+		mouse_pos = pygame.mouse.get_pos()
+		for button in pause_menu_buttons:
+			button.draw(screen, mouse_pos)
 		
 	#Stuff
 	pygame.display.flip()  # Update the display

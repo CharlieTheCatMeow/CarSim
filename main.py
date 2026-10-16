@@ -20,7 +20,7 @@ show_best_car = False
 
 highest_fitness = 0.0
 
-game_state = "playing"
+game_state = "start_menu"
 
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -30,13 +30,24 @@ running = True
 font = pygame.font.SysFont("Consolas", 20)
 title_font = pygame.font.SysFont("Consolas", 48)
 menu_font = pygame.font.SysFont("Consolas", 24)
+menu_cooldown = 0
+
+def create_start_menu_buttons():
+	center_screen_x = SCREEN_WIDTH / 2
+	return [
+		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Begin!", menu_font, "start"),
+		menu_stuff.Button((center_screen_x - 100, 400, 200, 40), "Quit", menu_font, "quit"),
+	]
 
 def create_pause_menu_buttons():
 	center_screen_x = SCREEN_WIDTH / 2
 	return [
 		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Resume", menu_font, "resume"),
-		menu_stuff.Button((center_screen_x - 100, 410, 200, 40), "Quit", menu_font, "quit")
+		menu_stuff.Button((center_screen_x - 100, 410, 200, 40), "Return to Menu", menu_font, "return_to_menu"),
+		menu_stuff.Button((center_screen_x - 100, 480, 200, 40), "Quit", menu_font, "quit")
 	]
+
+start_menu_buttons = create_start_menu_buttons()
 pause_menu_buttons = create_pause_menu_buttons()
 
 generation_count = 1
@@ -58,8 +69,10 @@ while running:
 			if event.key == pygame.K_ESCAPE:
 				if game_state == "playing":
 					game_state = "paused"
+					break
 				else:
 					game_state = "playing"
+					break
 			elif game_state == "playing":
 				if event.key == pygame.K_1:
 					simulation_speed = 1
@@ -72,13 +85,33 @@ while running:
 				elif event.key == pygame.K_h:
 					show_best_car = not show_best_car
 		elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+			if menu_cooldown > 0:
+				continue
 			if game_state == "paused":
 				for button in pause_menu_buttons:
 					if button.is_clicked(event.pos):
 						if button.action == "resume":
 							game_state = "playing"
+							break
+						elif button.action == "return_to_menu":
+							game_state = "start_menu"
+							menu_cooldown = 10
+							break
 						elif button.action == "quit":
 							running = False
+							break
+			elif game_state == "start_menu":
+				for button in start_menu_buttons:
+					if button.is_clicked(event.pos):
+						if button.action == "start":
+							game_state = "playing"
+							menu_cooldown = 10
+							break
+						elif button.action == "quit":
+							running = False
+							break
+	if menu_cooldown > 0:
+		menu_cooldown -= 1
 	
 	if game_state == "playing":
 		for _ in range(simulation_speed):
@@ -180,7 +213,19 @@ while running:
 		mouse_pos = pygame.mouse.get_pos()
 		for button in pause_menu_buttons:
 			button.draw(screen, mouse_pos)
+	
+	if game_state == "start_menu":
+		start_menu_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+		start_menu_overlay.fill((0, 0, 0))
+		screen.blit(start_menu_overlay, (0, 0))
 		
+		title_surface = title_font.render("CarSim", True, (255, 255, 255))
+		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+		
+		mouse_pos = pygame.mouse.get_pos()
+		for button in create_start_menu_buttons():
+			button.draw(screen, mouse_pos)
+
 	#Stuff
 	pygame.display.flip()  # Update the display
 	clock.tick(60)  # Limit the frame rate to 60 FPS

@@ -43,8 +43,16 @@ def create_pause_menu_buttons():
 	center_screen_x = SCREEN_WIDTH / 2
 	return [
 		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Resume", menu_font, "resume"),
-		menu_stuff.Button((center_screen_x - 100, 410, 200, 40), "Return to Menu", menu_font, "return_to_menu"),
-		menu_stuff.Button((center_screen_x - 100, 480, 200, 40), "Quit", menu_font, "quit")
+		menu_stuff.Button((center_screen_x - 100, 410, 200, 40), "Options", menu_font, "options"),
+		menu_stuff.Button((center_screen_x - 100, 480, 200, 40), "Return to Menu", menu_font, "return_to_menu"),
+		menu_stuff.Button((center_screen_x - 100, 550, 200, 40), "Quit", menu_font, "quit")
+	]
+
+def create_options_menu_buttons():
+	center_screen_x = SCREEN_WIDTH / 2
+	return [
+		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Begin!", menu_font, "start"),
+		menu_stuff.Button((center_screen_x - 100, 400, 200, 40), "Quit", menu_font, "quit"),
 	]
 
 start_menu_buttons = create_start_menu_buttons()
@@ -92,6 +100,9 @@ while running:
 					if button.is_clicked(event.pos):
 						if button.action == "resume":
 							game_state = "playing"
+							break
+						elif button.action == "options":
+							game_state = "options"
 							break
 						elif button.action == "return_to_menu":
 							game_state = "start_menu"
@@ -213,10 +224,9 @@ while running:
 		mouse_pos = pygame.mouse.get_pos()
 		for button in pause_menu_buttons:
 			button.draw(screen, mouse_pos)
-	
-	if game_state == "start_menu":
+	elif game_state == "start_menu":
 		start_menu_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-		start_menu_overlay.fill((0, 0, 0))
+		start_menu_overlay.fill((85, 128, 85))
 		screen.blit(start_menu_overlay, (0, 0))
 		
 		title_surface = title_font.render("CarSim", True, (255, 255, 255))
@@ -225,6 +235,13 @@ while running:
 		mouse_pos = pygame.mouse.get_pos()
 		for button in create_start_menu_buttons():
 			button.draw(screen, mouse_pos)
+	elif game_state == "options":
+		options_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+		options_overlay.fill((85, 128, 85))
+		screen.blit(options_overlay, (0, 0))
+		
+		title_surface = title_font.render("Options", True, (255, 255, 255))
+		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
 
 	#Stuff
 	pygame.display.flip()  # Update the display

@@ -22,6 +22,14 @@ class Button:
 	def is_clicked(self, mouse_pos):
 		return self.rect.collidepoint(mouse_pos)
 
+class InputField:
+	def __init__(self, rect, text, font):
+		self.rect = pygame.Rect(rect)
+		self.text = text
+		self.font = font
+		self.input = input
+	
+		
 
 
 

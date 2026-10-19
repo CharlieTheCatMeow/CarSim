@@ -2,35 +2,34 @@ import random
 import pygame
 import math
 
-import car
+from car import Car
 import track
 import menu_stuff
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
-
 CAR_STUCK_TIME = 4.0
 
 car_count = 100
-simulation_speed = 1
 time_per_generation = 20.0
+
+simulation_speed = 1
+show_best_car = False
+generation_count = 1
+highest_fitness = 0.0
 timer = time_per_generation
 
-show_best_car = False
-
-highest_fitness = 0.0
-
 game_state = "start_menu"
+running = True
+menu_cooldown = 0
 
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
-running = True
 
 font = pygame.font.SysFont("Consolas", 20)
 title_font = pygame.font.SysFont("Consolas", 48)
 menu_font = pygame.font.SysFont("Consolas", 24)
-menu_cooldown = 0
 
 def create_start_menu_buttons():
 	center_screen_x = SCREEN_WIDTH / 2
@@ -48,29 +47,53 @@ def create_pause_menu_buttons():
 		menu_stuff.Button((center_screen_x - 100, 550, 200, 40), "Quit", menu_font, "quit")
 	]
 
+def create_options_menu_input_fields():
+	center_screen_x = SCREEN_WIDTH / 2
+	return [
+		menu_stuff.InputField((center_screen_x - 100, 340, 200, 40), str(car_count), menu_font, max_length=5, title="Car Count", key="car_count"),
+	]
+
 def create_options_menu_buttons():
 	center_screen_x = SCREEN_WIDTH / 2
 	return [
-		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Begin!", menu_font, "start"),
-		menu_stuff.Button((center_screen_x - 100, 400, 200, 40), "Quit", menu_font, "quit"),
+		menu_stuff.Button((center_screen_x - 100, 410, 200, 40), "Return", menu_font, "back"),
 	]
 
 start_menu_buttons = create_start_menu_buttons()
 pause_menu_buttons = create_pause_menu_buttons()
-
-generation_count = 1
+options_menu_input_fields = create_options_menu_input_fields()
+options_menu_buttons = create_options_menu_buttons()
 
 track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT)
 start_x, start_y = track_object.checkpoints[0]
 
 cars = []
 for i in range(car_count):
-	cars.append(car.Car(start_x, start_y, math.radians(0)))
+	cars.append(Car(start_x, start_y, math.radians(0)))
 	cars[-1].laps_completed = 0
+
+def apply_changes():
+	global car_count, time_per_generation, cars, generation_count, timer, highest_fitness
+	for field in options_menu_input_fields:
+		if field.key == "car_count":
+			car_count = field.get_number(car_count)
+		elif field.key == "time_per_generation":
+			time_per_generation = float(field.get_number(int(time_per_generation)))
+	
+	if len(cars) > car_count:
+		cars = cars[:car_count]
+	else:
+		while len(cars) < car_count:
+			new_car = Car(start_x, start_y, math.radians(0))
+			new_car.laps_completed = 0
+			cars.append(new_car)
 
 while running:
 	# Keybinds
 	for event in pygame.event.get():
+		if game_state == "options":
+			for input_field in options_menu_input_fields:
+				input_field.handle_event(event)
 		if event.type == pygame.QUIT:
 			running = False
 		elif event.type == pygame.KEYDOWN:
@@ -120,6 +143,14 @@ while running:
 							break
 						elif button.action == "quit":
 							running = False
+							break
+			elif game_state == "options":
+				for button in options_menu_buttons:
+					if button.is_clicked(event.pos):
+						if button.action == "back":
+							apply_changes()
+							game_state = "paused"
+							menu_cooldown = 10
 							break
 	if menu_cooldown > 0:
 		menu_cooldown -= 1
@@ -242,6 +273,12 @@ while running:
 		
 		title_surface = title_font.render("Options", True, (255, 255, 255))
 		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+		
+		for input_field in options_menu_input_fields:
+			input_field.draw(screen)
+		mouse_pos = pygame.mouse.get_pos()
+		for button in options_menu_buttons:
+			button.draw(screen, mouse_pos)
 
 	#Stuff
 	pygame.display.flip()  # Update the display

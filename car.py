@@ -22,6 +22,7 @@ class Car:
 		self.ray_count = 5
 		self.fov = math.radians(120)
 		self.ray_length = 300
+		self.show_rays = False
 		
 		# Also things that change but not really
 		self.length, self.width = 28, 14
@@ -106,6 +107,27 @@ class Car:
 		output.append(self.angle_to_next_checkpoint(track) / math.pi)
 		return output
 
+	# Change car properties
+	def change_properties(self, key, value):
+		if key == "drag":
+			self.drag = value
+		elif key == "max_speed":
+			self.max_speed = value
+		elif key == "max_reverse_speed":
+			self.max_reverse_speed = value
+		elif key == "turn_rate":
+			self.turn_rate = value
+		elif key == "brake_force":
+			self.brake_force = value
+		elif key == "accel":
+			self.accel = value
+		elif key == "ray_count":
+			self.ray_count = int(value)
+		elif key == "fov":
+			self.fov = math.radians(value)
+		elif key == "ray_length":
+			self.ray_length = value
+	
 	# Draw the car
 	def draw(self, screen, color = (0, 155, 155)):
 		if not self.alive:

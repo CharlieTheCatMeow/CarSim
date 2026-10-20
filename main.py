@@ -13,6 +13,18 @@ CAR_STUCK_TIME = 4.0
 car_count = 100
 time_per_generation = 20.0
 
+car_properties = {
+	"drag": 0.3,
+	"max_speed": 600,
+	"max_reverse_speed": 80,
+	"turn_rate": 7.0,
+	"brake_force": 450,
+	"accel": 150,
+	"ray_count": 5,
+	"fov": 120,
+	"ray_length": 300,
+}
+
 simulation_speed = 1
 show_best_car = False
 generation_count = 1
@@ -31,12 +43,14 @@ font = pygame.font.SysFont("Consolas", 20)
 title_font = pygame.font.SysFont("Consolas", 48)
 menu_font = pygame.font.SysFont("Consolas", 24)
 
+
 def create_start_menu_buttons():
 	center_screen_x = SCREEN_WIDTH / 2
 	return [
 		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Begin!", menu_font, "start"),
 		menu_stuff.Button((center_screen_x - 100, 400, 200, 40), "Quit", menu_font, "quit"),
 	]
+
 
 def create_pause_menu_buttons():
 	center_screen_x = SCREEN_WIDTH / 2
@@ -47,30 +61,86 @@ def create_pause_menu_buttons():
 		menu_stuff.Button((center_screen_x - 100, 550, 200, 40), "Quit", menu_font, "quit")
 	]
 
+
 def create_options_menu_input_fields():
 	center_screen_x = SCREEN_WIDTH / 2
 	return [
-		menu_stuff.InputField((center_screen_x - 100, 340, 200, 40), str(car_count), menu_font, max_length=5, title="Car Count", key="car_count"),
+		menu_stuff.InputField((center_screen_x - 100, 340, 200, 40), str(car_count), menu_font, max_length=5,
+		                      title="Car Count", key="car_count"),
+		menu_stuff.InputField((center_screen_x - 100, 430, 200, 40), str(int(time_per_generation)), menu_font,
+		                      max_length=5, title="Time per Generation (seconds)", key="time_per_generation"),
 	]
+
 
 def create_options_menu_buttons():
 	center_screen_x = SCREEN_WIDTH / 2
 	return [
-		menu_stuff.Button((center_screen_x - 100, 410, 200, 40), "Return", menu_font, "back"),
+		menu_stuff.Button((center_screen_x - 100, 510, 200, 40), "Reset", menu_font, "reset"),
+		menu_stuff.Button((center_screen_x - 100, 580, 200, 40), "Car Options", menu_font, "car_options"),
+		menu_stuff.Button((center_screen_x - 100, 650, 200, 40), "Return", menu_font, "back"),
 	]
+
+
+def create_car_options_menu_input_fields():
+	center_screen_x = SCREEN_WIDTH / 2
+	return [
+		menu_stuff.InputField((center_screen_x - 440, 340, 200, 40), str(car_properties["drag"]), menu_font,
+		                      max_length=5, title="Drag", key="drag", allow_decimals=True),
+		menu_stuff.InputField((center_screen_x - 100, 340, 200, 40), str(car_properties["max_speed"]), menu_font,
+		                      max_length=5, title="Max Speed", key="max_speed"),
+		menu_stuff.InputField((center_screen_x + 240, 340, 200, 40), str(car_properties["max_reverse_speed"]),
+		                      menu_font, max_length=5, title="Max Reverse Speed", key="max_reverse_speed"),
+		menu_stuff.InputField((center_screen_x - 440, 430, 200, 40), str(car_properties["accel"]), menu_font,
+		                      max_length=5, title="Acceleration", key="accel"),
+		menu_stuff.InputField((center_screen_x - 100, 430, 200, 40), str(car_properties["brake_force"]), menu_font,
+		                      max_length=5, title="Brake Force", key="brake_force"),
+		menu_stuff.InputField((center_screen_x + 240, 430, 200, 40), str(car_properties["turn_rate"]), menu_font,
+		                      max_length=5, title="Turn Rate", key="turn_rate", allow_decimals=True),
+		menu_stuff.InputField((center_screen_x - 440, 520, 200, 40), str(car_properties["ray_count"]), menu_font,
+		                      max_length=5, title="Ray Count", key="ray_count"),
+		menu_stuff.InputField((center_screen_x - 100, 520, 200, 40), str(car_properties["fov"]), menu_font,
+		                      max_length=5, title="Field of View (degrees)", key="fov"),
+		menu_stuff.InputField((center_screen_x + 240, 520, 200, 40), str(car_properties["ray_length"]), menu_font,
+		                      max_length=5, title="Ray Length", key="ray_length"),
+	]
+
+
+def create_car_options_menu_buttons():
+	center_screen_x = SCREEN_WIDTH / 2
+	return [
+		menu_stuff.Button((center_screen_x - 100, 620, 200, 40), "Return", menu_font, "back"),
+	]
+
 
 start_menu_buttons = create_start_menu_buttons()
 pause_menu_buttons = create_pause_menu_buttons()
 options_menu_input_fields = create_options_menu_input_fields()
 options_menu_buttons = create_options_menu_buttons()
+car_options_menu_input_fields = create_car_options_menu_input_fields()
+car_options_menu_buttons = create_car_options_menu_buttons()
 
 track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT)
 start_x, start_y = track_object.checkpoints[0]
 
-cars = []
-for i in range(car_count):
-	cars.append(Car(start_x, start_y, math.radians(0)))
-	cars[-1].laps_completed = 0
+
+def apply_car_properties(car_to_change):
+	for key, value in car_properties.items():
+		if key == "max_reverse_speed":
+			value = -value
+		car_to_change.change_properties(key, value)
+
+
+def create_cars(car_count):
+	cars = []
+	for i in range(car_count):
+		cars.append(Car(start_x, start_y, math.radians(0)))
+		cars[-1].laps_completed = 0
+		apply_car_properties(cars[-1])
+	return cars
+
+
+cars = create_cars(car_count)
+
 
 def apply_changes():
 	global car_count, time_per_generation, cars, generation_count, timer, highest_fitness
@@ -86,13 +156,25 @@ def apply_changes():
 		while len(cars) < car_count:
 			new_car = Car(start_x, start_y, math.radians(0))
 			new_car.laps_completed = 0
+			apply_car_properties(new_car)
 			cars.append(new_car)
+
+
+def apply_car_changes():
+	for field in car_options_menu_input_fields:
+		car_properties[field.key] = field.get_number(car_properties[field.key])
+	for car_to_change in cars:
+		apply_car_properties(car_to_change)
+
 
 while running:
 	# Keybinds
 	for event in pygame.event.get():
 		if game_state == "options":
 			for input_field in options_menu_input_fields:
+				input_field.handle_event(event)
+		if game_state == "car_options":
+			for input_field in car_options_menu_input_fields:
 				input_field.handle_event(event)
 		if event.type == pygame.QUIT:
 			running = False
@@ -147,9 +229,28 @@ while running:
 			elif game_state == "options":
 				for button in options_menu_buttons:
 					if button.is_clicked(event.pos):
-						if button.action == "back":
+						if button.action == "reset":
+							apply_changes()
+							generation_count = 1
+							timer = time_per_generation
+							highest_fitness = 0.0
+							cars = create_cars(car_count)
+						elif button.action == "car_options":
+							apply_changes()
+							game_state = "car_options"
+							menu_cooldown = 10
+							break
+						elif button.action == "back":
 							apply_changes()
 							game_state = "paused"
+							menu_cooldown = 10
+							break
+			elif game_state == "car_options":
+				for button in car_options_menu_buttons:
+					if button.is_clicked(event.pos):
+						if button.action == "back":
+							apply_car_changes()
+							game_state = "options"
 							menu_cooldown = 10
 							break
 	if menu_cooldown > 0:
@@ -167,12 +268,14 @@ while running:
 					pass
 				
 				# Reinforcement learning stuff?
-				car_inputs = car.get_inputs(car.cast_rays(track_object, car.ray_count, car.fov, car.ray_length), track_object)
+				car_inputs = car.get_inputs(car.cast_rays(track_object, car.ray_count, car.fov, car.ray_length),
+				                            track_object)
 				throttle, steering = car.brain.think(car_inputs)
 				
 				# Checkpoints and stuff
 				previous_checkpoint_index = car.next_checkpoint_index
-				car.next_checkpoint_index, car.lap_completed = track_object.count_checkpoints(car.x, car.y, car.next_checkpoint_index)
+				car.next_checkpoint_index, car.lap_completed = track_object.count_checkpoints(car.x, car.y,
+				                                                                              car.next_checkpoint_index)
 				if previous_checkpoint_index != car.next_checkpoint_index:
 					car.time_since_last_checkpoint = 0.0
 				else:
@@ -192,6 +295,15 @@ while running:
 				if car.lap_completed:
 					print("Lap completed: " + str(car.laps_completed + 1))
 					car.laps_completed += 1
+				
+				# Maybe show the rays
+				if car.show_rays:
+					for i in range(car.ray_count):
+						ray_angle = car.heading - car.fov / 2 + car.fov * (i / (car.ray_count - 1))
+						distance = track_object.cast_ray(car.x, car.y, ray_angle, car.ray_length)
+						end_x = car.x + math.cos(ray_angle) * distance
+						end_y = car.y + math.sin(ray_angle) * distance
+						pygame.draw.line(screen, (0, 0, 255), (car.x, car.y), (end_x, end_y), 1)
 				
 				# Update the car
 				car.update(throttle, steering, 1 / 60)
@@ -248,7 +360,7 @@ while running:
 		pause_overlay.set_alpha(180)
 		pause_overlay.fill((0, 0, 0))
 		screen.blit(pause_overlay, (0, 0))
-	
+		
 		title_surface = title_font.render("PAUSED", True, (255, 255, 255))
 		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
 		
@@ -279,7 +391,20 @@ while running:
 		mouse_pos = pygame.mouse.get_pos()
 		for button in options_menu_buttons:
 			button.draw(screen, mouse_pos)
-
-	#Stuff
+	elif game_state == "car_options":
+		car_options_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+		car_options_overlay.fill((85, 128, 85))
+		screen.blit(car_options_overlay, (0, 0))
+		
+		title_surface = title_font.render("Car Options", True, (255, 255, 255))
+		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+		
+		for input_field in car_options_menu_input_fields:
+			input_field.draw(screen)
+		mouse_pos = pygame.mouse.get_pos()
+		for button in car_options_menu_buttons:
+			button.draw(screen, mouse_pos)
+	
+	# Stuff
 	pygame.display.flip()  # Update the display
 	clock.tick(60)  # Limit the frame rate to 60 FPS

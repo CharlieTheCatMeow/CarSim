@@ -135,14 +135,73 @@ class Car:
 		elif key == "ray_length":
 			self.ray_length = value
 	
+	_sprite_cache = {}
+	_shadow_surface = None
+	
+	def _get_car_surfaces(self, color = (0, 155, 155)):
+		width, height = self.length + 6, self.width + 6
+		
+		if Car._shadow_surface is None:
+			shadow = pygame.Surface((width, height), pygame.SRCALPHA)
+			pygame.draw.rect(shadow, (0, 0, 0, 95), (2, 2, self.length + 2, self.width + 2), border_radius=5)
+			Car._shadow_surface = shadow
+		
+		if color not in Car._sprite_cache:
+			surface = pygame.Surface((width, height), pygame.SRCALPHA)
+			body_x, body_y = 3, 3
+			body_width, body_height = self.length, self.width
+			
+			wheel_color = (20, 20, 22)
+			pygame.draw.rect(surface, wheel_color, (body_x + 4, body_y - 2, 6, 3), border_radius=1)
+			pygame.draw.rect(surface, wheel_color, (body_x + 4, body_y - body_height - 1, 6, 3), border_radius=1)
+			pygame.draw.rect(surface, wheel_color, (body_x + body_width - 9, body_y - 2, 6, 3), border_radius=1)
+			pygame.draw.rect(surface, wheel_color, (body_x + body_width - 9, body_y + body_height - 1, 6, 3), border_radius=1)
+			
+			dark_color = (max(0, color[0] - 45), max(0, color[1] - 45), max(0, color[2] - 45))
+			light_color = (min(255, color[0] + 45), min(255, color[1] + 45), min(255, color[2] + 45))
+			pygame.draw.rect(surface, dark_color, (body_x, body_y, body_width, body_height), border_radius=4)
+			
+			stripe_color = (235, 235, 235, 160)
+			pygame.draw.rect(surface, stripe_color, (body_x + 2, body_y + body_height // 2 - 1, body_width - 4, 2))
+			
+			glass_color = (30, 40, 55)
+			pygame.draw.polygon(surface, glass_color, [
+				(body_x + 14, body_y + 3),
+				(body_x + 20, body_y + 2),
+				(body_x + 20, body_y + body_height - 2),
+				(body_x + 14, body_y + body_height - 3),
+			])
+			
+			pygame.draw.rect(surface, light_color, (body_x + 8, body_y + 3, 7, body_height - 6), border_radius=2)
+			
+			pygame.draw.polygon(surface, glass_color, [
+				(body_x + 5, body_y + 2),
+				(body_x + 8, body_y + 3),
+				(body_x + 8, body_y + body_height - 3),
+				(body_x + 5, body_y + body_height - 2),
+			])
+			
+			pygame.draw.rect(surface, dark_color, (body_x + 1, body_y + 3, 3, body_height - 2), border_radius=1)
+			
+			pygame.draw.rect(surface, (255, 245, 180), (body_x + body_width - 2, body_y + 2, 2, 3), border_radius=1)
+			pygame.draw.rect(surface, (255, 245, 180), (body_x + body_width - 2, body_y + body_height - 5, 2, 3), border_radius=1)
+			pygame.draw.rect(surface, (220, 30, 30), (body_x, body_y + 2, 2, 3))
+			pygame.draw.rect(surface, (220, 30, 30), (body_x, body_y + body_height - 5, 2, 3))
+			
+			Car._sprite_cache[color] = surface
+		
+		return Car._sprite_cache[color], Car._shadow_surface
+	
 	# Draw the car
 	def draw(self, screen, color = (0, 155, 155)):
 		if not self.alive:
-			color = (70, 70, 70)
-		surface = pygame.Surface((self.length, self.width), pygame.SRCALPHA)
-		surface.fill(color)
-		rotated = pygame.transform.rotate(surface, -math.degrees(self.heading))
-		screen.blit(rotated, rotated.get_rect(center=(self.x, self.y)))
+			color = (90, 90, 95)
+		car_surface, shadow_surface = self._get_car_surfaces(color)
+		angle = -math.degrees(self.heading)
+		rotated_shadow = pygame.transform.rotate(shadow_surface, angle)
+		screen.blit(rotated_shadow, rotated_shadow.get_rect(center=(self.x + 4, self.y + 4)))
+		rotated_car = pygame.transform.rotate(car_surface, angle)
+		screen.blit(rotated_car, rotated_car.get_rect(center=(self.x, self.y)))
 	
 		
 		

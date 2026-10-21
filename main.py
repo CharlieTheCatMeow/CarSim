@@ -36,6 +36,7 @@ running = True
 menu_cooldown = 0
 
 pygame.init()
+pygame.display.set_caption("CarSim")
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
@@ -45,70 +46,69 @@ menu_font = pygame.font.SysFont("Consolas", 24)
 
 
 def create_start_menu_buttons():
-	center_screen_x = SCREEN_WIDTH / 2
+	center_screen_x = SCREEN_WIDTH // 2
+	btn_w, btn_h = 220, 44
 	return [
-		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Begin!", menu_font, "start"),
-		menu_stuff.Button((center_screen_x - 100, 400, 200, 40), "Quit", menu_font, "quit"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 330, btn_w, btn_h), "Begin!", menu_font, "start"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 395, btn_w, btn_h), "Quit", menu_font, "quit"),
 	]
 
 
 def create_pause_menu_buttons():
-	center_screen_x = SCREEN_WIDTH / 2
+	center_screen_x = SCREEN_WIDTH // 2
+	btn_w, btn_h = 220, 44
 	return [
-		menu_stuff.Button((center_screen_x - 100, 340, 200, 40), "Resume", menu_font, "resume"),
-		menu_stuff.Button((center_screen_x - 100, 410, 200, 40), "Options", menu_font, "options"),
-		menu_stuff.Button((center_screen_x - 100, 480, 200, 40), "Return to Menu", menu_font, "return_to_menu"),
-		menu_stuff.Button((center_screen_x - 100, 550, 200, 40), "Quit", menu_font, "quit")
+		menu_stuff.Button((center_screen_x - btn_w // 2, 280, btn_w, btn_h), "Resume", menu_font, "resume"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 345, btn_w, btn_h), "Options", menu_font, "options"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 410, btn_w, btn_h), "Return to Menu", menu_font,"return_to_menu"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 475, btn_w, btn_h), "Quit", menu_font, "quit"),
 	]
 
 
 def create_options_menu_input_fields():
-	center_screen_x = SCREEN_WIDTH / 2
+	center_screen_x = SCREEN_WIDTH // 2
+	field_w, field_h = 220, 40
 	return [
-		menu_stuff.InputField((center_screen_x - 100, 340, 200, 40), str(car_count), menu_font, max_length=5,
-		                      title="Car Count", key="car_count"),
-		menu_stuff.InputField((center_screen_x - 100, 430, 200, 40), str(int(time_per_generation)), menu_font,
-		                      max_length=5, title="Time per Generation (seconds)", key="time_per_generation"),
+		menu_stuff.InputField((center_screen_x - field_w // 2, 240, field_w, field_h), str(car_count), menu_font, max_length=5, title="Car Count", key="car_count"),
+		menu_stuff.InputField((center_screen_x - field_w // 2, 335, field_w, field_h), str(int(time_per_generation)), menu_font, max_length=5, title="Time per Generation (seconds)", key="time_per_generation"),
 	]
 
 
 def create_options_menu_buttons():
-	center_screen_x = SCREEN_WIDTH / 2
+	center_screen_x = SCREEN_WIDTH // 2
+	btn_w, btn_h = 220, 44
 	return [
-		menu_stuff.Button((center_screen_x - 100, 510, 200, 40), "Reset", menu_font, "reset"),
-		menu_stuff.Button((center_screen_x - 100, 580, 200, 40), "Car Options", menu_font, "car_options"),
-		menu_stuff.Button((center_screen_x - 100, 650, 200, 40), "Return", menu_font, "back"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 420, btn_w, btn_h), "Reset", menu_font, "reset"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 485, btn_w, btn_h), "Car Options", menu_font, "car_options"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 550, btn_w, btn_h), "Return", menu_font, "back"),
 	]
 
 
 def create_car_options_menu_input_fields():
-	center_screen_x = SCREEN_WIDTH / 2
+	center_screen_x = SCREEN_WIDTH // 2
+	field_w, field_h = 220, 40
+	col1_x = center_screen_x - 380
+	col2_x = center_screen_x - field_w // 2
+	col3_x = center_screen_x + 160
+	row1_y, row2_y, row3_y = 250, 350, 450
 	return [
-		menu_stuff.InputField((center_screen_x - 440, 340, 200, 40), str(car_properties["drag"]), menu_font,
-		                      max_length=5, title="Drag", key="drag", allow_decimals=True),
-		menu_stuff.InputField((center_screen_x - 100, 340, 200, 40), str(car_properties["max_speed"]), menu_font,
-		                      max_length=5, title="Max Speed", key="max_speed"),
-		menu_stuff.InputField((center_screen_x + 240, 340, 200, 40), str(car_properties["max_reverse_speed"]),
-		                      menu_font, max_length=5, title="Max Reverse Speed", key="max_reverse_speed"),
-		menu_stuff.InputField((center_screen_x - 440, 430, 200, 40), str(car_properties["accel"]), menu_font,
-		                      max_length=5, title="Acceleration", key="accel"),
-		menu_stuff.InputField((center_screen_x - 100, 430, 200, 40), str(car_properties["brake_force"]), menu_font,
-		                      max_length=5, title="Brake Force", key="brake_force"),
-		menu_stuff.InputField((center_screen_x + 240, 430, 200, 40), str(car_properties["turn_rate"]), menu_font,
-		                      max_length=5, title="Turn Rate", key="turn_rate", allow_decimals=True),
-		menu_stuff.InputField((center_screen_x - 440, 520, 200, 40), str(car_properties["ray_count"]), menu_font,
-		                      max_length=5, title="Ray Count", key="ray_count"),
-		menu_stuff.InputField((center_screen_x - 100, 520, 200, 40), str(car_properties["fov"]), menu_font,
-		                      max_length=5, title="Field of View (degrees)", key="fov"),
-		menu_stuff.InputField((center_screen_x + 240, 520, 200, 40), str(car_properties["ray_length"]), menu_font,
-		                      max_length=5, title="Ray Length", key="ray_length"),
+		menu_stuff.InputField((col1_x, row1_y, field_w, field_h), str(car_properties["drag"]), menu_font, max_length=5, title="Drag", key="drag", allow_decimals=True),
+		menu_stuff.InputField((col2_x, row1_y, field_w, field_h), str(car_properties["max_speed"]), menu_font, max_length=5, title="Max Speed", key="max_speed"),
+		menu_stuff.InputField((col3_x, row1_y, field_w, field_h), str(car_properties["max_reverse_speed"]), menu_font, max_length=5, title="Max Reverse Speed", key="max_reverse_speed"),
+		menu_stuff.InputField((col1_x, row2_y, field_w, field_h), str(car_properties["accel"]), menu_font, max_length=5, title="Acceleration", key="accel"),
+		menu_stuff.InputField((col2_x, row2_y, field_w, field_h), str(car_properties["brake_force"]), menu_font, max_length=5, title="Brake Force", key="brake_force"),
+		menu_stuff.InputField((col3_x, row2_y, field_w, field_h), str(car_properties["turn_rate"]), menu_font, max_length=5, title="Turn Rate", key="turn_rate", allow_decimals=True),
+		menu_stuff.InputField((col1_x, row3_y, field_w, field_h), str(car_properties["ray_count"]), menu_font, max_length=5, title="Ray Count", key="ray_count"),
+		menu_stuff.InputField((col2_x, row3_y, field_w, field_h), str(car_properties["fov"]), menu_font, max_length=5, title="Field of View (degrees)", key="fov"),
+		menu_stuff.InputField((col3_x, row3_y, field_w, field_h), str(car_properties["ray_length"]), menu_font, max_length=5, title="Ray Length", key="ray_length"),
 	]
 
 
 def create_car_options_menu_buttons():
-	center_screen_x = SCREEN_WIDTH / 2
+	center_screen_x = SCREEN_WIDTH // 2
+	btn_w, btn_h = 220, 44
 	return [
-		menu_stuff.Button((center_screen_x - 100, 620, 200, 40), "Return", menu_font, "back"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 545, btn_w, btn_h), "Return", menu_font, "back"),
 	]
 
 
@@ -268,14 +268,12 @@ while running:
 					pass
 				
 				# Reinforcement learning stuff?
-				car_inputs = car.get_inputs(car.cast_rays(track_object, car.ray_count, car.fov, car.ray_length),
-				                            track_object)
+				car_inputs = car.get_inputs(car.cast_rays(track_object, car.ray_count, car.fov, car.ray_length), track_object)
 				throttle, steering = car.brain.think(car_inputs)
 				
 				# Checkpoints and stuff
 				previous_checkpoint_index = car.next_checkpoint_index
-				car.next_checkpoint_index, car.lap_completed = track_object.count_checkpoints(car.x, car.y,
-				                                                                              car.next_checkpoint_index)
+				car.next_checkpoint_index, car.lap_completed = track_object.count_checkpoints(car.x, car.y, car.next_checkpoint_index)
 				if previous_checkpoint_index != car.next_checkpoint_index:
 					car.time_since_last_checkpoint = 0.0
 				else:
@@ -352,7 +350,7 @@ while running:
 	
 	for i, line in enumerate(HUD_lines):
 		text_surface = font.render(line, True, (255, 255, 255))
-		screen.blit(text_surface, (10, 10 + i * 30))
+		screen.blit(text_surface, (16, 16 + i * 28))
 	
 	# Pause menu
 	if game_state == "paused":
@@ -362,7 +360,7 @@ while running:
 		screen.blit(pause_overlay, (0, 0))
 		
 		title_surface = title_font.render("PAUSED", True, (255, 255, 255))
-		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 200)))
 		
 		mouse_pos = pygame.mouse.get_pos()
 		for button in pause_menu_buttons:
@@ -373,10 +371,10 @@ while running:
 		screen.blit(start_menu_overlay, (0, 0))
 		
 		title_surface = title_font.render("CarSim", True, (255, 255, 255))
-		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 240)))
 		
 		mouse_pos = pygame.mouse.get_pos()
-		for button in create_start_menu_buttons():
+		for button in start_menu_buttons:
 			button.draw(screen, mouse_pos)
 	elif game_state == "options":
 		options_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -384,7 +382,7 @@ while running:
 		screen.blit(options_overlay, (0, 0))
 		
 		title_surface = title_font.render("Options", True, (255, 255, 255))
-		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 140)))
 		
 		for input_field in options_menu_input_fields:
 			input_field.draw(screen)
@@ -397,7 +395,7 @@ while running:
 		screen.blit(car_options_overlay, (0, 0))
 		
 		title_surface = title_font.render("Car Options", True, (255, 255, 255))
-		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 140)))
 		
 		for input_field in car_options_menu_input_fields:
 			input_field.draw(screen)

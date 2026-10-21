@@ -33,7 +33,7 @@ class Car:
 		self.time_since_last_checkpoint = 0.0
 		
 		# For RL
-		self.brain = brain.Brain(input_size = 7, hidden_size = 10, output_size = 2)
+		self.brain = brain.Brain(input_size = self.ray_count + 2, hidden_sizes = [10], output_size = 2)
 		self.fitness = 0.0
 		
 	def reset(self, x, y, heading = 0.0):
@@ -122,7 +122,14 @@ class Car:
 		elif key == "accel":
 			self.accel = value
 		elif key == "ray_count":
-			self.ray_count = int(value)
+			new_ray_count = max(2, int(value))
+			if new_ray_count != self.ray_count:
+				self.ray_count = new_ray_count
+				self.brain = brain.Brain(
+					input_size=self.ray_count + 2,
+					hidden_sizes=self.brain.hidden_sizes,
+					output_size=self.brain.output_size
+				)
 		elif key == "fov":
 			self.fov = math.radians(value)
 		elif key == "ray_length":

@@ -7,21 +7,40 @@ class Button:
 		self.text = text
 		self.font = font
 		self.action = action
+		self.clicked_time = 0
 	
 	def draw(self, screen, mouse_pos):
 		hovered = self.rect.collidepoint(mouse_pos)
-		if hovered:
+		mouse_held = hovered and pygame.mouse.get_pressed()[0]
+		recently_clicked = (pygame.time.get_ticks() - self.clicked_time) < 120
+		pressed = mouse_held or recently_clicked
+		
+		shadow_rect = self.rect.move(0, 4)
+		pygame.draw.rect(screen, (25, 25, 25), shadow_rect, border_radius=7)
+		
+		if pressed:
+			draw_rect = self.rect.move(0, 3).inflate(-4, -2)
+			color = (120, 120, 120)
+			border_color = (255, 255, 255)
+		elif hovered:
+			draw_rect = self.rect.move(0, -1)
 			color = (90, 90, 90)
+			border_color = (220, 220, 220)
 		else:
+			draw_rect = self.rect
 			color = (60, 60, 60)
-		pygame.draw.rect(screen, color, self.rect, border_radius=7)
-		pygame.draw.rect(screen, (200, 200, 200), self.rect, width=2, border_radius=7)
+			border_color = (200, 200, 200)
+		pygame.draw.rect(screen, color, draw_rect, border_radius=7)
+		pygame.draw.rect(screen, border_color, draw_rect, width=2, border_radius=7)
 		
 		text_surface = self.font.render(self.text, True, (255, 255, 255))
-		screen.blit(text_surface, text_surface.get_rect(center=self.rect.center))
+		screen.blit(text_surface, text_surface.get_rect(center=draw_rect.center))
 	
 	def is_clicked(self, mouse_pos):
-		return self.rect.collidepoint(mouse_pos)
+		if self.rect.collidepoint(mouse_pos):
+			self.clicked_time = pygame.time.get_ticks()
+			return True
+		return False
 
 
 class InputField:

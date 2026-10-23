@@ -49,8 +49,9 @@ def create_start_menu_buttons():
 	center_screen_x = SCREEN_WIDTH // 2
 	btn_w, btn_h = 220, 44
 	return [
-		menu_stuff.Button((center_screen_x - btn_w // 2, 330, btn_w, btn_h), "Begin!", menu_font, "start"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 395, btn_w, btn_h), "Quit", menu_font, "quit"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 300, btn_w, btn_h), "Begin!", menu_font, "start"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 365, btn_w, btn_h), "Options", menu_font, "options"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 425, btn_w, btn_h), "Quit", menu_font, "quit"),
 	]
 
 
@@ -79,8 +80,9 @@ def create_options_menu_buttons():
 	btn_w, btn_h = 220, 44
 	return [
 		menu_stuff.Button((center_screen_x - btn_w // 2, 420, btn_w, btn_h), "Reset", menu_font, "reset"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 485, btn_w, btn_h), "Car Options", menu_font, "car_options"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 550, btn_w, btn_h), "Return", menu_font, "back"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 485, btn_w, btn_h), "Show Rays", menu_font, "show_rays"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 550, btn_w, btn_h), "Car Options", menu_font, "car_options"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 615, btn_w, btn_h), "Return", menu_font, "back"),
 	]
 
 
@@ -197,7 +199,7 @@ while running:
 					simulation_speed = 40
 				elif event.key == pygame.K_h:
 					show_best_car = not show_best_car
-		elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+		elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
 			if menu_cooldown > 0:
 				continue
 			if game_state == "paused":
@@ -223,6 +225,10 @@ while running:
 							game_state = "playing"
 							menu_cooldown = 10
 							break
+						elif button.action == "options":
+							game_state = "options"
+							menu_cooldown = 10
+							break
 						elif button.action == "quit":
 							running = False
 							break
@@ -235,6 +241,9 @@ while running:
 							timer = time_per_generation
 							highest_fitness = 0.0
 							cars = create_cars(car_count)
+						elif button.action == "show_rays":
+							for car in cars:
+								car.show_rays = not car.show_rays
 						elif button.action == "car_options":
 							apply_changes()
 							game_state = "car_options"
@@ -294,15 +303,6 @@ while running:
 					print("Lap completed: " + str(car.laps_completed + 1))
 					car.laps_completed += 1
 				
-				# Maybe show the rays
-				if car.show_rays:
-					for i in range(car.ray_count):
-						ray_angle = car.heading - car.fov / 2 + car.fov * (i / (car.ray_count - 1))
-						distance = track_object.cast_ray(car.x, car.y, ray_angle, car.ray_length)
-						end_x = car.x + math.cos(ray_angle) * distance
-						end_y = car.y + math.sin(ray_angle) * distance
-						pygame.draw.line(screen, (0, 0, 255), (car.x, car.y), (end_x, end_y), 1)
-				
 				# Update the car
 				car.update(throttle, steering, 1 / 60)
 			
@@ -329,6 +329,14 @@ while running:
 	for car in cars:
 		if show_best_car and car != best_car:
 			continue
+			# Maybe show the rays
+		if car.show_rays:
+			for i in range(car.ray_count):
+				ray_angle = car.heading - car.fov / 2 + car.fov * (i / (car.ray_count - 1))
+				distance = track_object.cast_ray(car.x, car.y, ray_angle, car.ray_length)
+				end_x = car.x + math.cos(ray_angle) * distance
+				end_y = car.y + math.sin(ray_angle) * distance
+				pygame.draw.line(screen, (0, 0, 255), (car.x, car.y), (end_x, end_y), 1)
 		if car is best_car:
 			car.draw(screen, (255, 0, 0))
 		else:

@@ -1,5 +1,6 @@
 import math
 import pygame
+import random
 
 class Track:
 	def __init__(self, width, height):
@@ -39,8 +40,7 @@ class Track:
 		self._track_grid = self._create_track_grid()
 		
 		self.mask_surface = pygame.Surface((self.width, self.height))
-		self.mask_surface.fill((85, 128, 85))
-		self._draw_track(self.mask_surface, (44, 47, 51))
+		self._render_environment(self.mask_surface)
 	
 	# Using the chaikin thingy to smooth the track points, looks bad otherwise
 	def _chaikin_smoothing(self, points, corner_rounding = 0.9, iterations = 3):
@@ -61,28 +61,105 @@ class Track:
 			points = chaikin_points
 		return points
 	
-	# Draw the track
-	def _draw_track(self, surface, color):
-		points = self.smoothed_points
+	# Render track but now in multiple parts and prettier
+	def _render_environment(self, surface):
+		# Background grass with some stripes (looked a bit flat before)
+		stripe_width = 40
+		for x in range(0, self.width, stripe_width):
+			if (x // stripe_width) % 2 == 0:
+				grass_color = (82, 128, 82)
+			else:
+				grass_color = (75, 120, 75)
+			pygame.draw.rect(surface, grass_color, (x, 0, stripe_width, self.height))
 		
-		half_width = self.road_width / 2
+		# Small grass details
+		rng = random.Random(42)
+		for _ in range(500):
+			grass_x, grass_y = rng.randint(0, self.width - 1), rng.randint(0, self.height - 1)
+			if rng.random() < 0.5:
+				grass_specks_color = (65, 108, 65)
+			else:
+				grass_specks_color = (92, 140, 92)
+			surface.fill(grass_specks_color, (grass_x, grass_y, 2, 2))
+			
+		# All the other functions:
+		self._draw_track_layer(surface, (48, 78, 48), self.road_width + 14, width_offset=(5, 5))
+		self._draw_curbs(surface, self.road_width + 8)
+		self._draw_track_layer(surface, (30, 33, 37), self.road_width + 2)
+		self._draw_track_layer(surface, (48, 52, 58), self.road_width)
+		self._draw_track_layer(surface, (55, 60, 66), self.road_width - 20)
+		
+	def _draw_track_layer(self, surface, color, width, width_offset=(0, 0)):
+		offset_x, offset_y = width_offset
+		width_half = width / 2      # Shocking
 		for a, b in self._segments:
-			dx = b[0] - a[0]
-			dy = b[1] - a[1]
+			ax, ay = a[0] + offset_x, a[1] + offset_y
+			bx, by = b[0] + offset_x, b[1] + offset_y
+			dx, dy = bx - ax, by - ay
 			length = math.hypot(dx, dy)
 			if length == 0:
 				continue
-			nx = -dy / length
-			ny = dx / length
+			normal_x, normal_y = -dy / length, dx / length
 			quad = [
-				(a[0] + nx * half_width, a[1] + ny * half_width),
-				(a[0] - nx * half_width, a[1] - ny * half_width),
-				(b[0] - nx * half_width, b[1] - ny * half_width),
-				(b[0] + nx * half_width, b[1] + ny * half_width)
+				(ax + normal_x * width_half, ay + normal_y * width_half),
+				(ax - normal_x * width_half, ay - normal_y * width_half),
+				(bx - normal_x * width_half, by - normal_y * width_half),
+				(bx + normal_x * width_half, by + normal_y * width_half),
 			]
 			pygame.draw.polygon(surface, color, quad)
-			pygame.draw.circle(surface, color, a, int(half_width))
+			pygame.draw.circle(surface, color, (int(ax), int(ay)), int(width_half))
 			
+	def _draw_curbs(self, surface, width):
+		width_half = width / 2      # Shocking, again
+		stripe_length = 10.0
+		corner_radius = 65.0
+		corners = []
+		waypoint_amount = len(self.waypoints)
+		for i in range(waypoint_amount):
+			previous_point = self.waypoints[(i - 1) % waypoint_amount]
+			current_point = self.waypoints[i % waypoint_amount]
+			next_point = self.waypoints[(i + 1) % waypoint_amount]
+			
+			angle1 = math.atan2(current_point[1] - previous_point[1], current_point[0] - previous_point[0])
+			angle2 = math.atan2(next_point[1] - current_point[1], next_point[0] - current_point[0])
+			turn_angle = abs((angle2 - angle1 + math.pi) % (2 * math.pi) - math.pi)
+			if turn_angle > math.radians(25):
+				corners.append(current_point)
+				
+			total_distance = 0.0
+			for a, b in self._segments:
+				dx, dy = b[0] - a[0], b[1] - a[1]
+				segment_length = math.hypot(dx, dy)
+				if segment_length == 0:
+					continue
+				ux, uy = dx / segment_length, dy / segment_length
+				normal_x, normal_y = -uy, ux
+				
+				steps = max(1, int(math.ceil(segment_length / stripe_length)))
+				step_length = segment_length / steps
+				
+				for s in range(steps):
+					d0 = s * step_length
+					d1 = (s + 1) * step_length
+					middle_x = a[0] + ux * (d0 + d1) / 2
+					middle_y = a[1] + uy * (d0 + d1) / 2
+					if any(math.hypot(middle_x - cx, middle_y - cy) < corner_radius for cx, cy in corners):
+						stripe_index = int((total_distance + d0) // stripe_length)
+						if stripe_index % 2 == 0:
+							color = (210, 45, 45)
+						else:
+							color = (235, 235, 235)
+						point0_x, point0_y = a[0] + ux * d0, a[1] + uy * d0
+						point1_x, point1_y = a[0] + ux * (d1 + 1.5), a[1] + uy * (d1 + 1.5)
+						quad = [
+							(point0_x + normal_x * width_half, point0_y + normal_y * width_half),
+							(point0_x - normal_x * width_half, point0_y - normal_y * width_half),
+							(point1_x - normal_x * width_half, point1_y - normal_y * width_half),
+							(point1_x + normal_x * width_half, point1_y + normal_y * width_half),
+						]
+						pygame.draw.polygon(surface, color, quad)
+				total_distance += segment_length
+				
 	def draw(self, screen):
 		screen.blit(self.mask_surface, (0, 0))
 		

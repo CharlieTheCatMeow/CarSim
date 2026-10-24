@@ -1,5 +1,6 @@
 import math
 import pygame
+from pip._internal.models import direct_url
 
 import brain
 
@@ -9,6 +10,8 @@ class Car:
 		self.x, self.y = x, y
 		self.heading = heading
 		self.speed = 0.0
+		self.lateral_speed = 0.0
+		self.velocity_x, self.velocity_y = 0.0, 0.0
 		
 		# Stats
 		self.drag = 0.3
@@ -17,6 +20,8 @@ class Car:
 		self.turn_rate = 7.0
 		self.brake_force = 450.0
 		self.accel = 150.0
+		self.grip = 18.0
+		self.drift_grip = 7.5
 		
 		# Ray casting stuff
 		self.ray_count = 5
@@ -33,18 +38,21 @@ class Car:
 		self.time_since_last_checkpoint = 0.0
 		
 		# For RL
-		self.brain = brain.Brain(input_size = self.ray_count + 2, hidden_sizes = [10], output_size = 2)
+		self.brain = brain.Brain(input_size = self.ray_count + 3, hidden_sizes = [10], output_size = 2)
 		self.fitness = 0.0
 		
 	def reset(self, x, y, heading = 0.0):
 		self.x, self.y = x, y
 		self.heading = heading
 		self.speed = 0.0
+		self.lateral_speed = 0.0
+		self.velocity_x, self.velocity_y = 0.0, 0.0
 		self.alive = True
 		self.laps_completed = 0
 		self.next_checkpoint_index = 0
 		self.time_since_last_checkpoint = 0.0
 		self.fitness = 0.0
+		self.time_alive = 0.0
 		
 	# Drive the car
 	# Negative throttle is basically breaking
@@ -55,26 +63,61 @@ class Car:
 		throttle = max(-1.0, min(1.0, throttle))
 		steering = max(-1.0, min(1.0, steering))
 		
-		# Acceleration
-		if throttle > 0:
-			speed_ratio = max(0.0, self.speed) / self.max_speed
-			self.speed += self.accel * throttle * (1.0 - speed_ratio) * dt
-		elif throttle < 0:
-			if self.speed > 0:
-				self.speed += self.brake_force * throttle * dt
-			else:
-				self.speed += self.accel * throttle * 0.5 * dt
-		
-		# Drag and stuff
-		self.speed *= (1.0 - self.drag * dt)
-		self.speed = max(self.max_reverse_speed, min(self.max_speed, self.speed))
+		abs_speed = math.hypot(self.velocity_x, self.velocity_y)
+		speed_ratio = min(1.0, abs_speed / max(1.0, self.max_speed))
 		
 		# Turning :O
-		speed_factor = self.speed / self.max_speed
-		self.heading += steering * self.turn_rate * speed_factor * dt
+		low_speed_turn = min(1.0, abs_speed / (self.max_speed * 0.20))
+		high_speed_understeer = 1.0 - (speed_ratio * 0.55)
+		if self.speed >= 0:
+			direction = 1.0
+		else:
+			direction = -1.0
+		effective_turn = self.turn_rate * low_speed_turn * high_speed_understeer * direction
+		self.heading += steering * effective_turn * dt
 		
-		self.x += math.cos(self.heading) * self.speed * dt
-		self.y += math.sin(self.heading) * self.speed * dt
+		forward_x = math.cos(self.heading)
+		forward_y = math.sin(self.heading)
+		right_x = -forward_y
+		right_y = forward_x
+		
+		forward_speed = self.velocity_x * forward_x + self.velocity_y * forward_y
+		lateral_speed = self.velocity_x * right_x + self.velocity_y * right_y
+		
+		# Acceleration and braking too
+		cornering_load = abs(steering) * speed_ratio
+		if throttle > 0:
+			power_curve = 1.0 - (speed_ratio ** 1.5) * 0.7
+			forward_speed += self.accel * throttle * power_curve * dt
+		elif throttle < 0:
+			if self.speed > 5:
+				forward_speed += self.brake_force * throttle * dt
+			else:
+				forward_speed += self.accel * throttle * 0.4 * dt
+		
+		# Grip?
+		slip_ratio = abs(lateral_speed) / max(150.0, abs_speed)
+		if slip_ratio > 0.45 and speed_ratio > 0.4:
+			current_grip = self.drift_grip
+		else:
+			current_grip = self.grip
+		
+		lateral_speed *= max(0.0, 1.0 - current_grip * dt)
+		
+		# Drag and stuff
+		aero_drag = self.drag * (speed_ratio ** 2) * forward_speed
+		rolling_drag = self.drag * 0.15 * forward_speed
+		corner_scrub = abs(steering) * speed_ratio * 0.35 * forward_speed
+		forward_speed -= (aero_drag + rolling_drag + corner_scrub) * dt
+		forward_speed = max(self.max_reverse_speed, min(self.max_speed, forward_speed))
+		
+		self.speed = forward_speed
+		self.lateral_speed = lateral_speed
+		self.velocity_x = forward_x * forward_speed + right_x * lateral_speed
+		self.velocity_y = forward_y * forward_speed + right_y * lateral_speed
+		
+		self.x += self.velocity_x * dt
+		self.y += self.velocity_y * dt
 		
 		self.time_since_last_checkpoint += dt
 		self.time_alive += dt
@@ -105,6 +148,7 @@ class Car:
 			output.append(max(0.0, min(1.0, ray)))
 		output.append(self.speed / self.max_speed)
 		output.append(self.angle_to_next_checkpoint(track) / math.pi)
+		output.append(self.lateral_speed / self.max_speed)
 		return output
 
 	# Change car properties
@@ -126,7 +170,7 @@ class Car:
 			if new_ray_count != self.ray_count:
 				self.ray_count = new_ray_count
 				self.brain = brain.Brain(
-					input_size=self.ray_count + 2,
+					input_size=self.ray_count + 3,
 					hidden_sizes=self.brain.hidden_sizes,
 					output_size=self.brain.output_size
 				)
@@ -134,6 +178,10 @@ class Car:
 			self.fov = math.radians(value)
 		elif key == "ray_length":
 			self.ray_length = value
+		elif key == "grip":
+			self.grip = value
+		elif key == "drift_grip":
+			self.drift_grip = value
 	
 	_sprite_cache = {}
 	_shadow_surface = None

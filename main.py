@@ -1,6 +1,7 @@
 import random
 import pygame
 import math
+import ctypes
 
 from car import Car
 import track
@@ -23,6 +24,8 @@ car_properties = {
 	"ray_count": 5,
 	"fov": 120,
 	"ray_length": 300,
+	"grip": 18.0,
+	"drift_grip": 7.5,
 }
 
 simulation_speed = 1
@@ -38,7 +41,20 @@ menu_cooldown = 0
 
 pygame.init()
 pygame.display.set_caption("CarSim")
+icon = pygame.Surface((32, 32), pygame.SRCALPHA)
+pygame.draw.rect(icon, (220, 50, 50), (4, 8, 24, 16), border_radius=5)
+pygame.draw.rect(icon, (180, 220, 255), (18, 10, 6, 12), border_radius=2)
+pygame.display.set_icon(icon)
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+try:
+	hwnd = pygame.display.get_wm_info()["window"]
+	ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(ctypes.c_int(1)), 4)
+	r, g, b = 30, 30, 40
+	colorref = r | (g << 8) | (b << 16)
+	ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(ctypes.c_int(colorref)), 4)
+except Exception:
+	pass
+
 clock = pygame.time.Clock()
 
 font = pygame.font.SysFont("Consolas", 20)
@@ -60,10 +76,11 @@ def create_pause_menu_buttons():
 	center_screen_x = SCREEN_WIDTH // 2
 	btn_w, btn_h = 220, 44
 	return [
-		menu_stuff.Button((center_screen_x - btn_w // 2, 280, btn_w, btn_h), "Resume", menu_font, "resume"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 345, btn_w, btn_h), "Options", menu_font, "options"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 410, btn_w, btn_h), "Return to Menu", menu_font,"return_to_menu"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 475, btn_w, btn_h), "Quit", menu_font, "quit"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 260, btn_w, btn_h), "Resume", menu_font, "resume"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 325, btn_w, btn_h), "Next Track", menu_font, "next_track"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 390, btn_w, btn_h), "Options", menu_font, "options"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 455, btn_w, btn_h), "Return to Menu", menu_font, "return_to_menu"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 520, btn_w, btn_h), "Quit", menu_font, "quit"),
 	]
 
 
@@ -79,9 +96,13 @@ def create_options_menu_input_fields():
 def create_options_menu_buttons():
 	center_screen_x = SCREEN_WIDTH // 2
 	btn_w, btn_h = 220, 44
+	left_x = center_screen_x - btn_w - 12
+	right_x = center_screen_x + 12
 	return [
-		menu_stuff.Button((center_screen_x - btn_w // 2, 420, btn_w, btn_h), "Reset", menu_font, "reset"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 485, btn_w, btn_h), "Show Rays", menu_font, "show_rays"),
+		menu_stuff.Button((left_x, 420, btn_w, btn_h), "Reset", menu_font, "reset"),
+		menu_stuff.Button((right_x, 420, btn_w, btn_h), "Show Rays", menu_font, "show_rays"),
+		menu_stuff.Button((left_x, 485, btn_w, btn_h), "Save Brain", menu_font, "save_brain"),
+		menu_stuff.Button((right_x, 485, btn_w, btn_h), "Load Brain", menu_font, "load_brain"),
 		menu_stuff.Button((center_screen_x - btn_w // 2, 550, btn_w, btn_h), "Car Options", menu_font, "car_options"),
 		menu_stuff.Button((center_screen_x - btn_w // 2, 615, btn_w, btn_h), "Return", menu_font, "back"),
 	]
@@ -93,7 +114,7 @@ def create_car_options_menu_input_fields():
 	col1_x = center_screen_x - 380
 	col2_x = center_screen_x - field_w // 2
 	col3_x = center_screen_x + 160
-	row1_y, row2_y, row3_y = 250, 350, 450
+	row1_y, row2_y, row3_y, row4_y = 220, 310, 400, 490
 	return [
 		menu_stuff.InputField((col1_x, row1_y, field_w, field_h), str(car_properties["drag"]), menu_font, max_length=5, title="Drag", key="drag", allow_decimals=True),
 		menu_stuff.InputField((col2_x, row1_y, field_w, field_h), str(car_properties["max_speed"]), menu_font, max_length=5, title="Max Speed", key="max_speed"),
@@ -104,6 +125,8 @@ def create_car_options_menu_input_fields():
 		menu_stuff.InputField((col1_x, row3_y, field_w, field_h), str(car_properties["ray_count"]), menu_font, max_length=5, title="Ray Count", key="ray_count"),
 		menu_stuff.InputField((col2_x, row3_y, field_w, field_h), str(car_properties["fov"]), menu_font, max_length=5, title="Field of View (degrees)", key="fov"),
 		menu_stuff.InputField((col3_x, row3_y, field_w, field_h), str(car_properties["ray_length"]), menu_font, max_length=5, title="Ray Length", key="ray_length"),
+		menu_stuff.InputField((col1_x, row4_y, field_w, field_h), str(car_properties["grip"]), menu_font, max_length=5, title="Grip", key="grip", allow_decimals=True),
+		menu_stuff.InputField((col2_x, row4_y, field_w, field_h), str(car_properties["drift_grip"]), menu_font, max_length=5, title="Drift Grip", key="drift_grip", allow_decimals=True),
 	]
 
 
@@ -111,7 +134,7 @@ def create_car_options_menu_buttons():
 	center_screen_x = SCREEN_WIDTH // 2
 	btn_w, btn_h = 220, 44
 	return [
-		menu_stuff.Button((center_screen_x - btn_w // 2, 545, btn_w, btn_h), "Return", menu_font, "back"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 580, btn_w, btn_h), "Return", menu_font, "back"),
 	]
 
 
@@ -122,7 +145,8 @@ options_menu_buttons = create_options_menu_buttons()
 car_options_menu_input_fields = create_car_options_menu_input_fields()
 car_options_menu_buttons = create_car_options_menu_buttons()
 
-track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT)
+current_track_index = 0
+track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
 start_x, start_y = track_object.checkpoints[0]
 
 
@@ -217,6 +241,15 @@ while running:
 						if button.action == "resume":
 							game_state = "playing"
 							break
+						elif button.action == "next_track":
+							current_track_index += 1
+							track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
+							start_x, start_y = track_object.checkpoints[0]
+							for car in cars:
+								car.reset(start_x, start_y, math.radians(0))
+							timer = time_per_generation
+							highest_fitness = 0
+							break
 						elif button.action == "options":
 							last_game_state = game_state
 							game_state = "options"
@@ -255,6 +288,21 @@ while running:
 						elif button.action == "show_rays":
 							for car in cars:
 								car.show_rays = not car.show_rays
+						elif button.action == "save_brain":
+							best_car_to_save = max(cars, key=lambda c: c.fitness)
+							best_car_to_save.brain.save("brain.npz")
+							print("Saved best brain to brain.npz")
+						elif button.action == "load_brain":
+							try:
+								cars[0].brain.load("brain.npz")
+								for car in cars[1:]:
+									car.brain = cars[0].brain.mutated_copy(mutation_rate=0.05)
+								for car in cars:
+									car.reset(track_object.checkpoints[0][0], track_object.checkpoints[0][1], math.radians(0))
+								timer = time_per_generation
+								print("Loaded brain from brain.npz")
+							except FileNotFoundError:
+								print("No saved brain.npz found yet!")
 						elif button.action == "car_options":
 							apply_changes()
 							game_state = "car_options"
@@ -302,17 +350,24 @@ while running:
 					car.alive = False
 				
 				# Fitness because cars have to be fit
-				if car.next_checkpoint_index > 0:
-					average_time_per_checkpoint = car.time_alive / car.next_checkpoint_index
-					car.fitness = (car.next_checkpoint_index + car.laps_completed * len(
-						track_object.checkpoints) - average_time_per_checkpoint * 0.1)
-				else:
-					car.fitness = -car.time_alive
-				
 				# Laps
 				if car.lap_completed:
 					print("Lap completed: " + str(car.laps_completed + 1))
 					car.laps_completed += 1
+				
+				total_checkpoints = car.next_checkpoint_index + car.laps_completed * len(track_object.checkpoints)
+				
+				previous_checkpoint = track_object.checkpoints[car.next_checkpoint_index - 1]
+				next_checkpoint = track_object.checkpoints[car.next_checkpoint_index]
+				segment_distance = math.hypot(next_checkpoint[0] - previous_checkpoint[0], next_checkpoint[1] - previous_checkpoint[1])
+				distance_to_next_checkpoint = math.hypot(next_checkpoint[0] - car.x, next_checkpoint[1] - car.y)
+				progress_fraction = max(0.0, min(1.0, 1.0 - (distance_to_next_checkpoint / max(1.0, segment_distance))))
+				
+				if total_checkpoints > 0:
+					average_time = car.time_alive / total_checkpoints
+					car.fitness = total_checkpoints + progress_fraction - (average_time * 0.1)
+				else:
+					car.fitness = progress_fraction - (car.time_alive * 0.1)
 				
 				# Update the car
 				car.update(throttle, steering, 1 / 60)
@@ -322,11 +377,14 @@ while running:
 				cars_ranked_by_fitness = sorted(cars, key=lambda c: c.fitness, reverse=True)
 				survivors = cars_ranked_by_fitness[:max(1, len(cars_ranked_by_fitness) // 8)]
 				for i, car in enumerate(cars):
-					if i == 0:
+					if i < 2:
 						car.brain = survivors[i].brain.copy()
+					elif i < len(cars) // 2:
+						p1, p2 = random.sample(survivors, 2)
+						car.brain = p1.brain.crossover(p2.brain).mutated_copy(mutation_rate=0.1)
 					else:
 						parent_car = random.choice(survivors)
-						car.brain = parent_car.brain.mutated_copy(mutation_rate=0.1)
+						car.brain = parent_car.brain.mutated_copy(mutation_rate=0.15)
 					car.reset(track_object.checkpoints[0][0], track_object.checkpoints[0][1], math.radians(0))
 				timer = time_per_generation
 				generation_count += 1

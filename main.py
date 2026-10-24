@@ -32,6 +32,7 @@ highest_fitness = 0.0
 timer = time_per_generation
 
 game_state = "start_menu"
+last_game_state = "start_menu"
 running = True
 menu_cooldown = 0
 
@@ -185,8 +186,16 @@ while running:
 				if game_state == "playing":
 					game_state = "paused"
 					break
-				else:
+				elif game_state == "paused":
 					game_state = "playing"
+					break
+				elif game_state == "options":
+					apply_changes()
+					game_state = last_game_state
+					break
+				elif game_state == "car_options":
+					apply_car_changes()
+					game_state = last_game_state
 					break
 			elif game_state == "playing":
 				if event.key == pygame.K_1:
@@ -209,6 +218,7 @@ while running:
 							game_state = "playing"
 							break
 						elif button.action == "options":
+							last_game_state = game_state
 							game_state = "options"
 							break
 						elif button.action == "return_to_menu":
@@ -226,6 +236,7 @@ while running:
 							menu_cooldown = 10
 							break
 						elif button.action == "options":
+							last_game_state = game_state
 							game_state = "options"
 							menu_cooldown = 10
 							break
@@ -251,7 +262,7 @@ while running:
 							break
 						elif button.action == "back":
 							apply_changes()
-							game_state = "paused"
+							game_state = last_game_state
 							menu_cooldown = 10
 							break
 			elif game_state == "car_options":

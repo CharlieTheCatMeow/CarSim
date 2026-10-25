@@ -61,7 +61,6 @@ font = pygame.font.SysFont("Consolas", 20)
 title_font = pygame.font.SysFont("Consolas", 48)
 menu_font = pygame.font.SysFont("Consolas", 24)
 
-
 def create_start_menu_buttons():
 	center_screen_x = SCREEN_WIDTH // 2
 	btn_w, btn_h = 220, 44
@@ -137,7 +136,6 @@ def create_car_options_menu_buttons():
 		menu_stuff.Button((center_screen_x - btn_w // 2, 580, btn_w, btn_h), "Return", menu_font, "back"),
 	]
 
-
 start_menu_buttons = create_start_menu_buttons()
 pause_menu_buttons = create_pause_menu_buttons()
 options_menu_input_fields = create_options_menu_input_fields()
@@ -145,10 +143,11 @@ options_menu_buttons = create_options_menu_buttons()
 car_options_menu_input_fields = create_car_options_menu_input_fields()
 car_options_menu_buttons = create_car_options_menu_buttons()
 
+status_message = ""
+status_timer = 0
+
 current_track_index = 0
 track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
-start_x, start_y = track_object.checkpoints[0]
-
 
 def apply_car_properties(car_to_change):
 	for key, value in car_properties.items():
@@ -160,7 +159,7 @@ def apply_car_properties(car_to_change):
 def create_cars(car_count):
 	cars = []
 	for i in range(car_count):
-		cars.append(Car(start_x, start_y, math.radians(0)))
+		cars.append(Car(*track_object.get_start_pos()))
 		cars[-1].laps_completed = 0
 		apply_car_properties(cars[-1])
 	return cars
@@ -181,7 +180,7 @@ def apply_changes():
 		cars = cars[:car_count]
 	else:
 		while len(cars) < car_count:
-			new_car = Car(start_x, start_y, math.radians(0))
+			new_car = Car(*track_object.get_start_pos())
 			new_car.laps_completed = 0
 			apply_car_properties(new_car)
 			cars.append(new_car)
@@ -219,7 +218,7 @@ while running:
 					break
 				elif game_state == "car_options":
 					apply_car_changes()
-					game_state = last_game_state
+					game_state = "options"
 					break
 			elif game_state == "playing":
 				if event.key == pygame.K_1:
@@ -244,9 +243,8 @@ while running:
 						elif button.action == "next_track":
 							current_track_index += 1
 							track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
-							start_x, start_y = track_object.checkpoints[0]
 							for car in cars:
-								car.reset(start_x, start_y, math.radians(0))
+								car.reset(*track_object.get_start_pos())
 							timer = time_per_generation
 							highest_fitness = 0
 							break
@@ -285,24 +283,37 @@ while running:
 							timer = time_per_generation
 							highest_fitness = 0.0
 							cars = create_cars(car_count)
+							status_message = "Reset cars"
+							status_timer = 90
 						elif button.action == "show_rays":
 							for car in cars:
 								car.show_rays = not car.show_rays
+							if cars[0].show_rays:
+								state_text = "ON"
+							else:
+								state_text = "OFF"
+							button.text = f"Show Rays: {state_text}"
 						elif button.action == "save_brain":
 							best_car_to_save = max(cars, key=lambda c: c.fitness)
 							best_car_to_save.brain.save("brain.npz")
 							print("Saved best brain to brain.npz")
+							status_message = "Saved the neural engine"
+							status_timer = 90
 						elif button.action == "load_brain":
 							try:
 								cars[0].brain.load("brain.npz")
 								for car in cars[1:]:
 									car.brain = cars[0].brain.mutated_copy(mutation_rate=0.05)
 								for car in cars:
-									car.reset(track_object.checkpoints[0][0], track_object.checkpoints[0][1], math.radians(0))
+									car.reset(*track_object.get_start_pos())
 								timer = time_per_generation
 								print("Loaded brain from brain.npz")
+								status_message = "Loaded the neural engine"
+								status_timer = 90
 							except FileNotFoundError:
 								print("No saved brain.npz found yet!")
+								status_message = "Loading failed D:"
+								status_timer = 90
 						elif button.action == "car_options":
 							apply_changes()
 							game_state = "car_options"
@@ -377,15 +388,15 @@ while running:
 				cars_ranked_by_fitness = sorted(cars, key=lambda c: c.fitness, reverse=True)
 				survivors = cars_ranked_by_fitness[:max(1, len(cars_ranked_by_fitness) // 8)]
 				for i, car in enumerate(cars):
-					if i < 2:
+					if i < min(2, len(survivors)):
 						car.brain = survivors[i].brain.copy()
-					elif i < len(cars) // 2:
+					elif i < len(cars) // 2 and len(survivors) >= 2:
 						p1, p2 = random.sample(survivors, 2)
 						car.brain = p1.brain.crossover(p2.brain).mutated_copy(mutation_rate=0.1)
 					else:
 						parent_car = random.choice(survivors)
 						car.brain = parent_car.brain.mutated_copy(mutation_rate=0.15)
-					car.reset(track_object.checkpoints[0][0], track_object.checkpoints[0][1], math.radians(0))
+					car.reset(*track_object.get_start_pos())
 				timer = time_per_generation
 				generation_count += 1
 				print("Timer reset")
@@ -479,6 +490,11 @@ while running:
 		mouse_pos = pygame.mouse.get_pos()
 		for button in car_options_menu_buttons:
 			button.draw(screen, mouse_pos)
+	
+	if status_timer > 0:
+		status_timer -= 1
+		message_surface = menu_font.render(status_message, True, (255, 240, 120))
+		screen.blit(message_surface, message_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 40)))
 	
 	# Stuff
 	pygame.display.flip()  # Update the display

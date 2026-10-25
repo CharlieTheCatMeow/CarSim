@@ -1,6 +1,5 @@
 import math
 import pygame
-from pip._internal.models import direct_url
 
 import brain
 
@@ -12,6 +11,7 @@ class Car:
 		self.speed = 0.0
 		self.lateral_speed = 0.0
 		self.velocity_x, self.velocity_y = 0.0, 0.0
+		self.is_drifting = False
 		
 		# Stats
 		self.drag = 0.3
@@ -99,8 +99,10 @@ class Car:
 		slip_ratio = abs(lateral_speed) / max(150.0, abs_speed)
 		if slip_ratio > 0.45 and speed_ratio > 0.4:
 			current_grip = self.drift_grip
+			self.is_drifting = True
 		else:
 			current_grip = self.grip
+			self.is_drifting = False
 		
 		lateral_speed *= max(0.0, 1.0 - current_grip * dt)
 		
@@ -201,7 +203,7 @@ class Car:
 			
 			wheel_color = (20, 20, 22)
 			pygame.draw.rect(surface, wheel_color, (body_x + 4, body_y - 2, 6, 3), border_radius=1)
-			pygame.draw.rect(surface, wheel_color, (body_x + 4, body_y - body_height - 1, 6, 3), border_radius=1)
+			pygame.draw.rect(surface, wheel_color, (body_x + 4, body_y + body_height - 1, 6, 3), border_radius=1)
 			pygame.draw.rect(surface, wheel_color, (body_x + body_width - 9, body_y - 2, 6, 3), border_radius=1)
 			pygame.draw.rect(surface, wheel_color, (body_x + body_width - 9, body_y + body_height - 1, 6, 3), border_radius=1)
 			

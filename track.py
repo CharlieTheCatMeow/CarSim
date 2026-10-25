@@ -154,38 +154,38 @@ class Track:
 			if turn_angle > math.radians(25):
 				corners.append(current_point)
 				
-			total_distance = 0.0
-			for a, b in self._segments:
-				dx, dy = b[0] - a[0], b[1] - a[1]
-				segment_length = math.hypot(dx, dy)
-				if segment_length == 0:
-					continue
-				ux, uy = dx / segment_length, dy / segment_length
-				normal_x, normal_y = -uy, ux
-				
-				steps = max(1, int(math.ceil(segment_length / stripe_length)))
-				step_length = segment_length / steps
-				
-				for s in range(steps):
-					d0 = s * step_length
-					d1 = (s + 1) * step_length
-					middle_x = a[0] + ux * (d0 + d1) / 2
-					middle_y = a[1] + uy * (d0 + d1) / 2
-					if any(math.hypot(middle_x - cx, middle_y - cy) < corner_radius for cx, cy in corners):
-						stripe_index = int((total_distance + d0) // stripe_length)
-						if stripe_index % 2 == 0:
-							color = (210, 45, 45)
-						else:
-							color = (235, 235, 235)
-						point0_x, point0_y = a[0] + ux * d0, a[1] + uy * d0
-						point1_x, point1_y = a[0] + ux * (d1 + 1.5), a[1] + uy * (d1 + 1.5)
-						quad = [
-							(point0_x + normal_x * width_half, point0_y + normal_y * width_half),
-							(point0_x - normal_x * width_half, point0_y - normal_y * width_half),
-							(point1_x - normal_x * width_half, point1_y - normal_y * width_half),
-							(point1_x + normal_x * width_half, point1_y + normal_y * width_half),
-						]
-						pygame.draw.polygon(surface, color, quad)
+		total_distance = 0.0
+		for a, b in self._segments:
+			dx, dy = b[0] - a[0], b[1] - a[1]
+			segment_length = math.hypot(dx, dy)
+			if segment_length == 0:
+				continue
+			ux, uy = dx / segment_length, dy / segment_length
+			normal_x, normal_y = -uy, ux
+			
+			steps = max(1, int(math.ceil(segment_length / stripe_length)))
+			step_length = segment_length / steps
+			
+			for s in range(steps):
+				d0 = s * step_length
+				d1 = (s + 1) * step_length
+				middle_x = a[0] + ux * (d0 + d1) / 2
+				middle_y = a[1] + uy * (d0 + d1) / 2
+				if any(math.hypot(middle_x - cx, middle_y - cy) < corner_radius for cx, cy in corners):
+					stripe_index = int((total_distance + d0) // stripe_length)
+					if stripe_index % 2 == 0:
+						color = (210, 45, 45)
+					else:
+						color = (235, 235, 235)
+					point0_x, point0_y = a[0] + ux * d0, a[1] + uy * d0
+					point1_x, point1_y = a[0] + ux * (d1 + 1.5), a[1] + uy * (d1 + 1.5)
+					quad = [
+						(point0_x + normal_x * width_half, point0_y + normal_y * width_half),
+						(point0_x - normal_x * width_half, point0_y - normal_y * width_half),
+						(point1_x - normal_x * width_half, point1_y - normal_y * width_half),
+						(point1_x + normal_x * width_half, point1_y + normal_y * width_half),
+					]
+					pygame.draw.polygon(surface, color, quad)
 				total_distance += segment_length
 				
 	def draw(self, screen):
@@ -319,6 +319,11 @@ class Track:
 			distance += step
 		return length
 		
+	def get_start_pos(self):
+		x0, y0 = self.checkpoints[0]
+		x1, y1 = self.checkpoints[1]
+		heading = math.atan2(y1 - y0, x1 - x0)
+		return x0, y0, heading
 		
 	
 	

@@ -148,6 +148,7 @@ status_timer = 0
 
 current_track_index = 0
 track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
+skid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
 
 def apply_car_properties(car_to_change):
 	for key, value in car_properties.items():
@@ -177,13 +178,20 @@ def apply_changes():
 			time_per_generation = float(field.get_number(int(time_per_generation)))
 	
 	if len(cars) > car_count:
-		cars = cars[:car_count]
-	else:
+		cars = sorted(cars, key=lambda c: c.fitness, reverse=True)[:car_count]
+	elif len(cars) < car_count:
+		best_existing_car = max(cars, key=lambda c: c.fitness)
 		while len(cars) < car_count:
 			new_car = Car(*track_object.get_start_pos())
 			new_car.laps_completed = 0
 			apply_car_properties(new_car)
+			new_car.brain = best_existing_car.brain.mutated_copy(mutation_rate=0.05)
 			cars.append(new_car)
+		for car in cars:
+			car.reset(*track_object.get_start_pos())
+		skid_surface.fill(0, 0, 0, 0)
+		timer = time_per_generation
+		highest_fitness = 0
 
 
 def apply_car_changes():
@@ -247,6 +255,7 @@ while running:
 								car.reset(*track_object.get_start_pos())
 							timer = time_per_generation
 							highest_fitness = 0
+							skid_surface.fill((0, 0, 0, 0))
 							break
 						elif button.action == "options":
 							last_game_state = game_state
@@ -285,6 +294,7 @@ while running:
 							cars = create_cars(car_count)
 							status_message = "Reset cars"
 							status_timer = 90
+							skid_surface.fill((0, 0, 0, 0))
 						elif button.action == "show_rays":
 							for car in cars:
 								car.show_rays = not car.show_rays
@@ -310,6 +320,7 @@ while running:
 								print("Loaded brain from brain.npz")
 								status_message = "Loaded the neural engine"
 								status_timer = 90
+								skid_surface.fill((0, 0, 0, 0))
 							except FileNotFoundError:
 								print("No saved brain.npz found yet!")
 								status_message = "Loading failed D:"
@@ -382,6 +393,13 @@ while running:
 				
 				# Update the car
 				car.update(throttle, steering, 1 / 60)
+				
+				if car.is_drifting and car.alive:
+					old_left, old_right = car.previous_rear_wheel_pos
+					new_left, new_right = car.get_rear_wheel_pos()
+					skid_color = (20, 20, 22, 75)
+					pygame.draw.line(skid_surface, skid_color, old_left, new_left, 3)
+					pygame.draw.line(skid_surface, skid_color, old_right, new_right, 3)
 			
 			# Car evolution
 			if timer <= 0.0 or not any(car.alive for car in cars):
@@ -397,6 +415,7 @@ while running:
 						parent_car = random.choice(survivors)
 						car.brain = parent_car.brain.mutated_copy(mutation_rate=0.15)
 					car.reset(*track_object.get_start_pos())
+				skid_surface.fill((0, 0, 0, 0))
 				timer = time_per_generation
 				generation_count += 1
 				print("Timer reset")
@@ -405,6 +424,7 @@ while running:
 	# Drawing cars and track
 	screen.fill((0, 0, 0))
 	track_object.draw(screen)
+	screen.blit(skid_surface, (0, 0))
 	best_car = max(cars, key=lambda c: c.fitness)
 	for car in cars:
 		if show_best_car and car != best_car:

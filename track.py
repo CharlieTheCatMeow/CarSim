@@ -116,6 +116,7 @@ class Track:
 		self._draw_track_layer(surface, (30, 33, 37), self.road_width + 2)
 		self._draw_track_layer(surface, (48, 52, 58), self.road_width)
 		self._draw_track_layer(surface, (55, 60, 66), self.road_width - 20)
+		self._draw_start_line(surface)
 		
 	def _draw_track_layer(self, surface, color, width, width_offset=(0, 0)):
 		offset_x, offset_y = width_offset
@@ -187,7 +188,19 @@ class Track:
 					]
 					pygame.draw.polygon(surface, color, quad)
 				total_distance += segment_length
-				
+	
+	def _draw_start_line(self, surface):
+		(x0, y0), (x1, y1) = self.checkpoints[0], self.checkpoints[1]
+		dx, dy = x1 - x0, y1 - y0
+		length = math.hypot(dx, dy)
+		if length == 0:
+			return
+		normal_x, normal_y = -dy / length, dx / length
+		half_width = self.road_width / 2
+		start_pos = (x0 + normal_x * half_width, y0 + normal_y * half_width)
+		end_pos = (x0 - normal_x * half_width, y0 - normal_y * half_width)
+		pygame.draw.line(surface, (240, 240, 240), start_pos, end_pos, 5)
+	
 	def draw(self, screen):
 		screen.blit(self.mask_surface, (0, 0))
 		

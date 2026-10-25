@@ -31,6 +31,7 @@ class Car:
 		
 		# Also things that change but not really
 		self.length, self.width = 28, 14
+		self.previous_rear_wheel_pos = self.get_rear_wheel_pos()
 		self.alive = True
 		self.time_alive = 0.0
 		self.laps_completed = 0
@@ -53,6 +54,8 @@ class Car:
 		self.time_since_last_checkpoint = 0.0
 		self.fitness = 0.0
 		self.time_alive = 0.0
+		self.is_drifting = False
+		self.previous_rear_wheel_pos = self.get_rear_wheel_pos()
 		
 	# Drive the car
 	# Negative throttle is basically breaking
@@ -97,7 +100,7 @@ class Car:
 		
 		# Grip?
 		slip_ratio = abs(lateral_speed) / max(150.0, abs_speed)
-		if slip_ratio > 0.45 and speed_ratio > 0.4:
+		if slip_ratio > 0.15 and speed_ratio > 0.25:
 			current_grip = self.drift_grip
 			self.is_drifting = True
 		else:
@@ -117,6 +120,8 @@ class Car:
 		self.lateral_speed = lateral_speed
 		self.velocity_x = forward_x * forward_speed + right_x * lateral_speed
 		self.velocity_y = forward_y * forward_speed + right_y * lateral_speed
+		
+		self.previous_rear_wheel_pos = self.get_rear_wheel_pos()
 		
 		self.x += self.velocity_x * dt
 		self.y += self.velocity_y * dt
@@ -253,7 +258,18 @@ class Car:
 		rotated_car = pygame.transform.rotate(car_surface, angle)
 		screen.blit(rotated_car, rotated_car.get_rect(center=(self.x, self.y)))
 	
+	def get_rear_wheel_pos(self):
+		rear_offset = self.length * 0.32
+		rear_x = self.x - math.cos(self.heading) * rear_offset
+		rear_y = self.y - math.sin(self.heading) * rear_offset
 		
+		side_offset = self.width * 0.38
+		perpendicular_x = -math.sin(self.heading) * side_offset
+		perpendicular_y = math.cos(self.heading) * side_offset
+		
+		left_wheel_pos = (rear_x + perpendicular_x, rear_y + perpendicular_y)
+		right_wheel_pos = (rear_x - perpendicular_x, rear_y - perpendicular_y)
+		return left_wheel_pos, right_wheel_pos
 		
 		
 		

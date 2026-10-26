@@ -175,7 +175,7 @@ def create_cars(car_count):
 
 
 cars = create_cars(car_count)
-
+best_car = cars[0]
 
 def apply_changes():
 	global car_count, time_per_generation, cars, generation_count, timer, highest_fitness
@@ -478,7 +478,9 @@ while running:
 	screen.fill((0, 0, 0))
 	track_object.draw(screen)
 	screen.blit(skid_surface, (0, 0))
-	best_car = max(cars, key=lambda c: c.fitness)
+	candidate_car = max((car for car in cars if car.alive), key=lambda car: car.fitness, default=cars[0])
+	if best_car not in cars or not best_car.alive or candidate_car.fitness > best_car.fitness + 0.5:
+		best_car = candidate_car
 	for car in cars:
 		if show_best_car and car != best_car:
 			continue
@@ -490,10 +492,9 @@ while running:
 				end_x = car.x + math.cos(ray_angle) * distance
 				end_y = car.y + math.sin(ray_angle) * distance
 				pygame.draw.line(screen, (0, 0, 255), (car.x, car.y), (end_x, end_y), 1)
-		if car is best_car:
-			car.draw(screen, (255, 0, 0))
-		else:
+		if car is not best_car:
 			car.draw(screen)
+	best_car.draw(screen, (255, 0, 0))
 	
 	# HUD
 	cars_alive_count = sum(1 for car in cars if car.alive)

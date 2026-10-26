@@ -57,6 +57,7 @@ class Car:
 		self.time_alive = 0.0
 		self.is_drifting = False
 		self.previous_rear_wheel_pos = self.get_rear_wheel_pos()
+		self.last_rays = []
 		
 	# Drive the car
 	# Negative throttle is basically breaking
@@ -178,6 +179,7 @@ class Car:
 			new_ray_count = max(2, int(value))
 			if new_ray_count != self.ray_count:
 				self.ray_count = new_ray_count
+				self.last_rays = []
 				self.brain = brain.Brain(
 					input_size=self.ray_count + 3,
 					hidden_sizes=self.brain.hidden_sizes,
@@ -193,6 +195,7 @@ class Car:
 			self.drift_grip = value
 	
 	_sprite_cache = {}
+	_rotated_cache = {}
 	_shadow_surface = None
 	
 	def _get_car_surfaces(self, color = (0, 155, 155)):
@@ -253,11 +256,16 @@ class Car:
 	def draw(self, screen, color = (0, 155, 155)):
 		if not self.alive:
 			color = (90, 90, 95)
-		car_surface, shadow_surface = self._get_car_surfaces(color)
-		angle = -math.degrees(self.heading)
-		rotated_shadow = pygame.transform.rotate(shadow_surface, angle)
+		angle = int(-math.degrees(self.heading)) % 360
+		key = (color, angle)
+		if key not in Car._rotated_cache:
+			car_surface, shadow_surface = self._get_car_surfaces(color)
+			Car._rotated_cache[key] = (
+				pygame.transform.rotate(car_surface, angle),
+				pygame.transform.rotate(shadow_surface, angle)
+			)
+		rotated_car, rotated_shadow = Car._rotated_cache[key]
 		screen.blit(rotated_shadow, rotated_shadow.get_rect(center=(self.x + 4, self.y + 4)))
-		rotated_car = pygame.transform.rotate(car_surface, angle)
 		screen.blit(rotated_car, rotated_car.get_rect(center=(self.x, self.y)))
 	
 	def get_rear_wheel_pos(self):

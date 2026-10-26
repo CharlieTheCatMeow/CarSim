@@ -445,7 +445,7 @@ while running:
 				# Update the car
 				car.update(throttle, steering, 1 / 60)
 				
-				if car.is_drifting and car.alive and (not show_best_car or car.fitness >= highest_fitness):
+				if car.is_drifting and car.alive and (not show_best_car or car is best_car):
 					old_left, old_right = car.previous_rear_wheel_pos
 					new_left, new_right = car.get_rear_wheel_pos()
 					skid_color = (20, 20, 22, 75)

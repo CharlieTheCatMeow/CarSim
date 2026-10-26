@@ -102,7 +102,7 @@ def create_options_menu_buttons():
 	right_x = center_screen_x + 12
 	return [
 		menu_stuff.Button((left_x, 420, btn_w, btn_h), "Reset", menu_font, "reset"),
-		menu_stuff.Button((right_x, 420, btn_w, btn_h), "Show Rays", menu_font, "show_rays"),
+		menu_stuff.Button((right_x, 420, btn_w, btn_h), "Show Rays: OFF", menu_font, "show_rays"),
 		menu_stuff.Button((left_x, 485, btn_w, btn_h), "Save Brain", menu_font, "save_brain"),
 		menu_stuff.Button((right_x, 485, btn_w, btn_h), "Load Brain", menu_font, "load_brain"),
 		menu_stuff.Button((center_screen_x - btn_w // 2, 550, btn_w, btn_h), "Car Options", menu_font, "car_options"),
@@ -153,6 +153,9 @@ current_track_index = 0
 editor_waypoints = []
 track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
 skid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+pause_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+pause_overlay.set_alpha(180)
+pause_overlay.fill((0, 0, 0))
 
 def apply_car_properties(car_to_change):
 	for key, value in car_properties.items():
@@ -369,7 +372,7 @@ while running:
 								status_message = "Loaded the neural engine"
 								status_timer = 90
 								skid_surface.fill((0, 0, 0, 0))
-							except FileNotFoundError:
+							except (FileNotFoundError, ValueError):
 								print("No saved brain.npz found yet!")
 								status_message = "Loading failed D:"
 								status_timer = 90
@@ -402,8 +405,7 @@ while running:
 				# Check if car is on track
 				if not track_object.is_on_track(car.x, car.y):
 					car.alive = False
-					# Add point reduction system for AI later on
-					pass
+					continue
 				
 				# Reinforcement learning stuff?
 				car_inputs = car.get_inputs(car.cast_rays(track_object, car.ray_count, car.fov, car.ray_length), track_object)
@@ -418,6 +420,7 @@ while running:
 					pass
 				if car.time_since_last_checkpoint > CAR_STUCK_TIME:
 					car.alive = False
+					continue
 				
 				# Fitness because cars have to be fit
 				# Laps
@@ -435,14 +438,14 @@ while running:
 				
 				if total_checkpoints > 0:
 					average_time = car.time_alive / total_checkpoints
-					car.fitness = total_checkpoints + progress_fraction - (average_time * 0.1)
+					car.fitness = max(car.fitness, total_checkpoints + progress_fraction - (average_time * 0.1))
 				else:
-					car.fitness = progress_fraction - (car.time_alive * 0.1)
+					car.fitness = max(car.fitness, progress_fraction - (car.time_alive * 0.1))
 				
 				# Update the car
 				car.update(throttle, steering, 1 / 60)
 				
-				if car.is_drifting and car.alive:
+				if car.is_drifting and car.alive and (not show_best_car or car.fitness >= highest_fitness):
 					old_left, old_right = car.previous_rear_wheel_pos
 					new_left, new_right = car.get_rear_wheel_pos()
 					skid_color = (20, 20, 22, 75)
@@ -456,6 +459,8 @@ while running:
 				for i, car in enumerate(cars):
 					if i < min(2, len(survivors)):
 						car.brain = survivors[i].brain.copy()
+					elif i < len(cars) // 4:
+						car.brain = survivors[0].brain.mutated_copy(mutation_rate=0.03)
 					elif i < len(cars) // 2 and len(survivors) >= 2:
 						p1, p2 = random.sample(survivors, 2)
 						car.brain = p1.brain.crossover(p2.brain).mutated_copy(mutation_rate=0.1)
@@ -478,10 +483,10 @@ while running:
 		if show_best_car and car != best_car:
 			continue
 			# Maybe show the rays
-		if car.show_rays:
+		if car.show_rays and car.alive and len(car.last_rays) == car.ray_count:
 			for i in range(car.ray_count):
 				ray_angle = car.heading - car.fov / 2 + car.fov * (i / (car.ray_count - 1))
-				distance = track_object.cast_ray(car.x, car.y, ray_angle, car.ray_length)
+				distance = car.last_rays[i] * car.ray_length
 				end_x = car.x + math.cos(ray_angle) * distance
 				end_y = car.y + math.sin(ray_angle) * distance
 				pygame.draw.line(screen, (0, 0, 255), (car.x, car.y), (end_x, end_y), 1)
@@ -510,9 +515,6 @@ while running:
 	
 	# Pause menu
 	if game_state == "paused":
-		pause_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-		pause_overlay.set_alpha(180)
-		pause_overlay.fill((0, 0, 0))
 		screen.blit(pause_overlay, (0, 0))
 		
 		title_surface = title_font.render("PAUSED", True, (255, 255, 255))
@@ -522,9 +524,7 @@ while running:
 		for button in pause_menu_buttons:
 			button.draw(screen, mouse_pos)
 	elif game_state == "start_menu":
-		start_menu_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-		start_menu_overlay.fill((85, 128, 85))
-		screen.blit(start_menu_overlay, (0, 0))
+		screen.fill((85, 128, 85))
 		
 		title_surface = title_font.render("CarSim", True, (255, 255, 255))
 		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 240)))
@@ -533,9 +533,7 @@ while running:
 		for button in start_menu_buttons:
 			button.draw(screen, mouse_pos)
 	elif game_state == "options":
-		options_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-		options_overlay.fill((85, 128, 85))
-		screen.blit(options_overlay, (0, 0))
+		screen.fill((85, 128, 85))
 		
 		title_surface = title_font.render("Options", True, (255, 255, 255))
 		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 140)))
@@ -546,9 +544,7 @@ while running:
 		for button in options_menu_buttons:
 			button.draw(screen, mouse_pos)
 	elif game_state == "car_options":
-		car_options_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-		car_options_overlay.fill((85, 128, 85))
-		screen.blit(car_options_overlay, (0, 0))
+		screen.fill((85, 128, 85))
 		
 		title_surface = title_font.render("Car Options", True, (255, 255, 255))
 		screen.blit(title_surface, title_surface.get_rect(center=(SCREEN_WIDTH // 2, 140)))

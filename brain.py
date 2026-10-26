@@ -68,6 +68,8 @@ class Brain:
 			if f"weight_{i}" in data and data[f"weight_{i}"].shape == self.weights[i].shape:
 				self.weights[i] = data[f"weight_{i}"].copy()
 				self.biases[i] = data[f"bias_{i}"].copy()
+			else:
+				raise ValueError("Brain doesn't work")
 	
 	
 	

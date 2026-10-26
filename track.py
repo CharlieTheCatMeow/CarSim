@@ -75,7 +75,7 @@ class Track:
 	
 	# Using the chaikin thingy to smooth the track points, looks bad otherwise
 	def _chaikin_smoothing(self, points, corner_rounding = 0.9, iterations = 3):
-		for _ in range(3):
+		for _ in range(iterations):
 			if corner_rounding == 1:
 				return points
 			chaikin_points = []
@@ -323,15 +323,19 @@ class Track:
 		return distance
 	
 	# Ray casting stuff for AI later on (Hope this works and is actually useful)
-	def cast_ray(self, x, y, angle, length, step = 8):
+	def cast_ray(self, x, y, angle, length, step = 16):
 		dx = math.cos(angle)
 		dy = math.sin(angle)
-		distance = 0
+		distance = step
 		while distance < length:
 			point_x = x + dx * distance
 			point_y = y + dy * distance
 			if not self.is_on_track(point_x, point_y):
-				return distance
+				half = distance - step // 2
+				if not self.is_on_track(x + dx * half, y + dy * half):
+					return half
+				else:
+					return distance
 			distance += step
 		return length
 		

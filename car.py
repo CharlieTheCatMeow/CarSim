@@ -28,6 +28,7 @@ class Car:
 		self.fov = math.radians(120)
 		self.ray_length = 300
 		self.show_rays = False
+		self.last_rays = []
 		
 		# Also things that change but not really
 		self.length, self.width = 28, 14
@@ -138,11 +139,12 @@ class Car:
 			ray_angle = start_angle + fov * (i / (ray_count - 1))
 			distance = track.cast_ray(self.x, self.y, ray_angle, ray_length)
 			ray_distances.append(distance / ray_length)
+		self.last_rays = ray_distances
 		return ray_distances
 	
 	# Angle to next checkpoint for the neural thing as an input
 	def angle_to_next_checkpoint(self, track):
-		target = track.checkpoints[self.next_checkpoint_index]
+		target = track.checkpoints[(self.next_checkpoint_index + 4) % len(track.checkpoints)]
 		dx = target[0] - self.x
 		dy = target[1] - self.y
 		angle_to_target = math.atan2(dy, dx) - self.heading

@@ -3,7 +3,7 @@ import pygame
 import random
 
 class Track:
-	def __init__(self, width, height, track_index=0):
+	def __init__(self, width, height, track_index=0, custom_waypoints=None):
 		self.width = width
 		self.height = height
 		
@@ -57,7 +57,10 @@ class Track:
 				(165, 565), (125, 505), (175, 445),
 			],
 		]
-		self.waypoints = self.track_presets[track_index % len(self.track_presets)]
+		if custom_waypoints is not None and len(custom_waypoints) >= 3:
+			self.waypoints = list(custom_waypoints)
+		else:
+			self.waypoints = self.track_presets[track_index % len(self.track_presets)]
 		
 		self.road_width = 60
 		self.smoothed_points = self._chaikin_smoothing(self.waypoints)
@@ -187,7 +190,7 @@ class Track:
 						(point1_x + normal_x * width_half, point1_y + normal_y * width_half),
 					]
 					pygame.draw.polygon(surface, color, quad)
-				total_distance += segment_length
+			total_distance += segment_length
 	
 	def _draw_start_line(self, surface):
 		(x0, y0), (x1, y1) = self.checkpoints[0], self.checkpoints[1]
@@ -251,7 +254,7 @@ class Track:
 		length_squared = dx**2 + dy**2
 		
 		if length_squared == 0:
-			return math.hypot(point_x - ax, point_y - ay)
+			return ax, ay, math.hypot(point_x - ax, point_y - ay)
 		
 		t = ((point_x-ax) * dx + (point_y - ay) * dy) / length_squared
 		t = max(0.0, min(1.0, t))

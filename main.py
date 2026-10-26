@@ -30,6 +30,7 @@ car_properties = {
 
 simulation_speed = 1
 show_best_car = False
+show_rays = False
 generation_count = 1
 highest_fitness = 0.0
 timer = time_per_generation
@@ -66,8 +67,9 @@ def create_start_menu_buttons():
 	btn_w, btn_h = 220, 44
 	return [
 		menu_stuff.Button((center_screen_x - btn_w // 2, 300, btn_w, btn_h), "Begin!", menu_font, "start"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 365, btn_w, btn_h), "Options", menu_font, "options"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 425, btn_w, btn_h), "Quit", menu_font, "quit"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 365, btn_w, btn_h), "Track Editor", menu_font, "track_editor"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 430, btn_w, btn_h), "Options", menu_font, "options"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 495, btn_w, btn_h), "Quit", menu_font, "quit"),
 	]
 
 
@@ -76,10 +78,11 @@ def create_pause_menu_buttons():
 	btn_w, btn_h = 220, 44
 	return [
 		menu_stuff.Button((center_screen_x - btn_w // 2, 260, btn_w, btn_h), "Resume", menu_font, "resume"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 325, btn_w, btn_h), "Next Track", menu_font, "next_track"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 390, btn_w, btn_h), "Options", menu_font, "options"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 455, btn_w, btn_h), "Return to Menu", menu_font, "return_to_menu"),
-		menu_stuff.Button((center_screen_x - btn_w // 2, 520, btn_w, btn_h), "Quit", menu_font, "quit"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 325, btn_w, btn_h), "Track Editor", menu_font, "track_editor"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 390, btn_w, btn_h), "Next Track", menu_font, "next_track"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 455, btn_w, btn_h), "Options", menu_font, "options"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 520, btn_w, btn_h), "Return to Menu", menu_font, "return_to_menu"),
+		menu_stuff.Button((center_screen_x - btn_w // 2, 585, btn_w, btn_h), "Quit", menu_font, "quit"),
 	]
 
 
@@ -147,6 +150,7 @@ status_message = ""
 status_timer = 0
 
 current_track_index = 0
+editor_waypoints = []
 track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
 skid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
 
@@ -155,6 +159,7 @@ def apply_car_properties(car_to_change):
 		if key == "max_reverse_speed":
 			value = -value
 		car_to_change.change_properties(key, value)
+	car_to_change.show_rays = show_rays
 
 
 def create_cars(car_count):
@@ -189,7 +194,7 @@ def apply_changes():
 			cars.append(new_car)
 		for car in cars:
 			car.reset(*track_object.get_start_pos())
-		skid_surface.fill(0, 0, 0, 0)
+		skid_surface.fill((0, 0, 0, 0))
 		timer = time_per_generation
 		highest_fitness = 0
 
@@ -207,9 +212,39 @@ while running:
 		if game_state == "options":
 			for input_field in options_menu_input_fields:
 				input_field.handle_event(event)
-		if game_state == "car_options":
+		elif game_state == "car_options":
 			for input_field in car_options_menu_input_fields:
 				input_field.handle_event(event)
+		# Track editor stuff (kinda long)
+		elif game_state == "track_editor":
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_ESCAPE:
+					game_state = last_game_state
+					break
+				elif event.key in (pygame.K_BACKSPACE, pygame.K_z) and editor_waypoints:
+					editor_waypoints.pop()
+				elif event.key == pygame.K_c:
+					editor_waypoints.clear()
+				elif event.key == pygame.K_RETURN:
+					if len(editor_waypoints) >= 3:
+						track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, custom_waypoints=editor_waypoints)
+						for car in cars:
+							car.reset(*track_object.get_start_pos())
+						skid_surface.fill((0, 0, 0, 0))
+						timer = time_per_generation
+						highest_fitness = 0.0
+						game_state = "playing"
+					else:
+						status_message = "Place at least 3 checkpoints goog"
+						status_timer = 90
+			elif event.type == pygame.MOUSEBUTTONUP:
+				if menu_cooldown > 0:
+					continue
+				if event.button == 1:
+					editor_waypoints.append(event.pos)
+				elif event.button == 3 and editor_waypoints:
+					editor_waypoints.pop()
+					
 		if event.type == pygame.QUIT:
 			running = False
 		elif event.type == pygame.KEYDOWN:
@@ -248,6 +283,12 @@ while running:
 						if button.action == "resume":
 							game_state = "playing"
 							break
+						elif button.action == "track_editor":
+							last_game_state = game_state
+							editor_waypoints = []
+							game_state = "track_editor"
+							menu_cooldown = 10
+							break
 						elif button.action == "next_track":
 							current_track_index += 1
 							track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
@@ -275,6 +316,12 @@ while running:
 							game_state = "playing"
 							menu_cooldown = 10
 							break
+						elif button.action == "track_editor":
+							last_game_state = game_state
+							editor_waypoints = []
+							game_state = "track_editor"
+							menu_cooldown = 10
+							break
 						elif button.action == "options":
 							last_game_state = game_state
 							game_state = "options"
@@ -296,8 +343,9 @@ while running:
 							status_timer = 90
 							skid_surface.fill((0, 0, 0, 0))
 						elif button.action == "show_rays":
+							show_rays = not show_rays
 							for car in cars:
-								car.show_rays = not car.show_rays
+								car.show_rays = show_rays
 							if cars[0].show_rays:
 								state_text = "ON"
 							else:
@@ -510,6 +558,42 @@ while running:
 		mouse_pos = pygame.mouse.get_pos()
 		for button in car_options_menu_buttons:
 			button.draw(screen, mouse_pos)
+	elif game_state == "track_editor":
+		screen.fill((85, 128, 82))
+		
+		if len(editor_waypoints) >= 3:
+			preview_points = track_object._chaikin_smoothing(editor_waypoints)
+			width_half = track_object.road_width / 2
+			for i in range(len(preview_points)):
+				ax, ay = preview_points[i]
+				bx, by = preview_points[(i + 1) % len(preview_points)]
+				dx, dy = bx - ax, by - ay
+				length = math.hypot(dx, dy)
+				if length > 0:
+					nx, ny = -dy / length, dx / length
+					quad = [
+						(ax + nx * width_half, ay + ny * width_half),
+						(ax - nx * width_half, ay - ny * width_half),
+						(bx - nx * width_half, by - ny * width_half),
+						(bx + nx * width_half, by + ny * width_half),
+					]
+					pygame.draw.polygon(screen, (48, 52, 58), quad)
+				pygame.draw.circle(screen, (48, 52, 58), (int(ax), int(ay)), int(width_half))
+			pygame.draw.lines(screen, (200, 200, 200), True, preview_points, 2)
+		elif len(editor_waypoints) == 2:
+			pygame.draw.line(screen, (200, 200, 200), editor_waypoints[0], editor_waypoints[1], 2)
+		
+		for i, point in enumerate(editor_waypoints):
+			if i == 0:
+				node_color = (80, 230, 100)
+			else:
+				node_color = (255, 210, 70)
+			pygame.draw.circle(screen, node_color, point, 6)
+			pygame.draw.circle(screen, (20, 20, 20), point, 6, 2)
+		
+		help_text = "M1: Add point | M2: Undo | C: Clear | Enter: Play | Esc: Cancel"
+		help_surface = font.render(help_text, True, (255, 255, 255))
+		screen.blit(help_surface, (16, 16))
 	
 	if status_timer > 0:
 		status_timer -= 1

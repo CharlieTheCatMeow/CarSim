@@ -63,13 +63,13 @@ class Brain:
 		numpy.savez(filename, **data)
 	
 	def load(self, filename="brain.npz"):
-		data = numpy.load(filename)
-		for i in range(len(self.weights)):
-			if f"weight_{i}" in data and data[f"weight_{i}"].shape == self.weights[i].shape:
-				self.weights[i] = data[f"weight_{i}"].copy()
-				self.biases[i] = data[f"bias_{i}"].copy()
-			else:
-				raise ValueError("Brain doesn't work")
+		with numpy.load(filename) as data:
+			for i in range(len(self.weights)):
+				if f"weight_{i}" in data and data[f"weight_{i}"].shape == self.weights[i].shape:
+					self.weights[i] = data[f"weight_{i}"].copy()
+					self.biases[i] = data[f"bias_{i}"].copy()
+				else:
+					raise ValueError("Brain doesn't work")
 	
 	
 	

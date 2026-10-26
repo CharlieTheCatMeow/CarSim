@@ -177,6 +177,7 @@ def create_cars(car_count):
 cars = create_cars(car_count)
 best_car = cars[0]
 
+
 def apply_changes():
 	global car_count, time_per_generation, cars, generation_count, timer, highest_fitness
 	for field in options_menu_input_fields:
@@ -203,10 +204,18 @@ def apply_changes():
 
 
 def apply_car_changes():
+	global timer, highest_fitness
+	old_ray_count = car_properties["ray_count"]
 	for field in car_options_menu_input_fields:
 		car_properties[field.key] = field.get_number(car_properties[field.key])
 	for car_to_change in cars:
 		apply_car_properties(car_to_change)
+	if car_properties["ray_count"] != old_ray_count:
+		for car in cars:
+			car.reset(*track_object.get_start_pos())
+		skid_surface.fill((0, 0, 0, 0))
+		timer = time_per_generation
+		highest_fitness = 0.0
 
 
 while running:
@@ -244,7 +253,8 @@ while running:
 				if menu_cooldown > 0:
 					continue
 				if event.button == 1:
-					editor_waypoints.append(event.pos)
+					if not editor_waypoints or math.hypot(event.pos[0] - editor_waypoints[-1][0], event.pos[1] - editor_waypoints[-1][1]) > 10:
+						editor_waypoints.append(event.pos)
 				elif event.button == 3 and editor_waypoints:
 					editor_waypoints.pop()
 					
@@ -369,6 +379,7 @@ while running:
 									car.reset(*track_object.get_start_pos())
 								timer = time_per_generation
 								print("Loaded brain from brain.npz")
+								highest_fitness = 0.0
 								status_message = "Loaded the neural engine"
 								status_timer = 90
 								skid_surface.fill((0, 0, 0, 0))
@@ -428,7 +439,8 @@ while running:
 					print("Lap completed: " + str(car.laps_completed + 1))
 					car.laps_completed += 1
 				
-				total_checkpoints = car.next_checkpoint_index + car.laps_completed * len(track_object.checkpoints)
+				# Calculate the total number of checkpoints completed
+				total_checkpoints = (car.next_checkpoint_index - 1) + car.laps_completed * len(track_object.checkpoints)
 				
 				previous_checkpoint = track_object.checkpoints[car.next_checkpoint_index - 1]
 				next_checkpoint = track_object.checkpoints[car.next_checkpoint_index]

@@ -67,8 +67,9 @@ class Track:
 		self._segments = list(zip(self.smoothed_points, self.smoothed_points[1:] + self.smoothed_points[:1]))
 		self.checkpoints = self._create_checkpoints(150)
 		
-		self.grid_cell_size = 10
-		self._track_grid = self._create_track_grid()
+		road_surface = pygame.Surface((self.width, self.height))
+		self._draw_track_layer(road_surface, (255, 255, 255), self.road_width)
+		self._track_bytes = pygame.image.tobytes(road_surface, "RGB")[::3]
 		
 		self.mask_surface = pygame.Surface((self.width, self.height))
 		self._render_environment(self.mask_surface)
@@ -206,25 +207,12 @@ class Track:
 	
 	def draw(self, screen):
 		screen.blit(self.mask_surface, (0, 0))
-		
-	# Do a grid of the track first for performance?
-	def _create_track_grid(self):
-		columns = self.width // self.grid_cell_size + 1
-		rows = self.height // self.grid_cell_size + 1
-		grid = [[False] * rows for _ in range(columns)]
-		for x in range(columns):
-			for y in range(rows):
-				cell_x = x * self.grid_cell_size
-				cell_y = y * self.grid_cell_size
-				grid[x][y] = self._distance_to_centerline(cell_x, cell_y) <= self.road_width / 2
-		return grid
 	
 	# Check if car is on track
 	def is_on_track(self, x, y):
-		cell_x = int(x) // self.grid_cell_size
-		cell_y = int(y) // self.grid_cell_size
-		if 0 <= cell_x < len(self._track_grid) and 0 <= cell_y < len(self._track_grid[0]):
-			return self._track_grid[cell_x][cell_y]
+		ix, iy = int(x), int(y)
+		if 0 <= ix < self.width and 0 <= iy < self.height:
+			return self._track_bytes[iy * self.width + ix] != 0
 		return False
 
 	def _distance_to_centerline(self, x, y):
@@ -268,6 +256,8 @@ class Track:
 	def _create_checkpoints(self, checkpoint_count = 50):
 		points = self.smoothed_points
 		total_length = self._total_track_length()
+		if total_length <= 1e-6:
+			return [points[0], points[1 % len(points)]]
 		spacing = total_length / checkpoint_count
 		
 		checkpoints = [points[0]]
@@ -327,15 +317,17 @@ class Track:
 		dx = math.cos(angle)
 		dy = math.sin(angle)
 		distance = step
-		while distance < length:
-			point_x = x + dx * distance
-			point_y = y + dy * distance
-			if not self.is_on_track(point_x, point_y):
-				half = distance - step // 2
-				if not self.is_on_track(x + dx * half, y + dy * half):
-					return half
-				else:
-					return distance
+		while distance <= length:
+			if not self.is_on_track(x + dx * distance, y + dy * distance):
+				low = distance - step
+				high = distance
+				for _ in range(4):
+					mid = (low + high) / 2
+					if not self.is_on_track(x + dx * mid, y + dy * mid):
+						high = mid
+					else:
+						low = mid
+				return high
 			distance += step
 		return length
 		

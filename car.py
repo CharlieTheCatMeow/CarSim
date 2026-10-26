@@ -36,7 +36,7 @@ class Car:
 		self.alive = True
 		self.time_alive = 0.0
 		self.laps_completed = 0
-		self.next_checkpoint_index = 0
+		self.next_checkpoint_index = 1
 		self.time_since_last_checkpoint = 0.0
 		
 		# For RL
@@ -51,7 +51,7 @@ class Car:
 		self.velocity_x, self.velocity_y = 0.0, 0.0
 		self.alive = True
 		self.laps_completed = 0
-		self.next_checkpoint_index = 0
+		self.next_checkpoint_index = 1
 		self.time_since_last_checkpoint = 0.0
 		self.fitness = 0.0
 		self.time_alive = 0.0
@@ -90,12 +90,11 @@ class Car:
 		lateral_speed = self.velocity_x * right_x + self.velocity_y * right_y
 		
 		# Acceleration and braking too
-		cornering_load = abs(steering) * speed_ratio
 		if throttle > 0:
 			power_curve = 1.0 - (speed_ratio ** 1.5) * 0.7
 			forward_speed += self.accel * throttle * power_curve * dt
 		elif throttle < 0:
-			if self.speed > 5:
+			if forward_speed > 5:
 				forward_speed += self.brake_force * throttle * dt
 			else:
 				forward_speed += self.accel * throttle * 0.4 * dt
@@ -241,7 +240,7 @@ class Car:
 				(body_x + 5, body_y + body_height - 2),
 			])
 			
-			pygame.draw.rect(surface, dark_color, (body_x + 1, body_y + 3, 3, body_height - 2), border_radius=1)
+			pygame.draw.rect(surface, dark_color, (body_x + 1, body_y + 3, 3, body_height - 6), border_radius=1)
 			
 			pygame.draw.rect(surface, (255, 245, 180), (body_x + body_width - 2, body_y + 2, 2, 3), border_radius=1)
 			pygame.draw.rect(surface, (255, 245, 180), (body_x + body_width - 2, body_y + body_height - 5, 2, 3), border_radius=1)

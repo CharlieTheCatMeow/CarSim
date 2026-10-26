@@ -1,3 +1,5 @@
 /state/
 /main.dist/
 /main.build/
+/.venv/
+/.venv_linux/

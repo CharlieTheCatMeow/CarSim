@@ -214,25 +214,6 @@ class Track:
 		if 0 <= ix < self.width and 0 <= iy < self.height:
 			return self._track_bytes[iy * self.width + ix] != 0
 		return False
-
-	def _distance_to_centerline(self, x, y):
-		points = self.smoothed_points
-		closest_distance = float("inf")
-		for a, b in self._segments:
-			px, py, distance = self._distance_to_track_center(x, y, a, b)
-			closest_distance = min(closest_distance, distance)
-		return closest_distance
-		
-	def closest_point(self, x, y):
-		points = self.smoothed_points
-		closest_point = None
-		closest_distance = float("inf")
-		for a, b in self._segments:
-			point_x, point_y, distance = self._distance_to_track_center(x, y, a, b)
-			if distance < closest_distance:
-				closest_distance = distance
-				closest_point = (point_x, point_y)
-		return closest_point
 		
 	@staticmethod
 	def _distance_to_track_center(point_x, point_y, point_a, point_b):

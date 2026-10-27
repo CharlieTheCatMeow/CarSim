@@ -14,7 +14,7 @@ CAR_STUCK_TIME = 4.0
 car_count = 100
 time_per_generation = 20.0
 
-car_properties = {
+DEFAULT_CAR_PROPERTIES = {
 	"drag": 0.3,
 	"max_speed": 600,
 	"max_reverse_speed": 80,
@@ -27,6 +27,7 @@ car_properties = {
 	"grip": 18.0,
 	"drift_grip": 7.5,
 }
+car_properties = DEFAULT_CAR_PROPERTIES.copy()
 
 simulation_speed = 1
 show_best_car = False
@@ -135,8 +136,11 @@ def create_car_options_menu_input_fields():
 def create_car_options_menu_buttons():
 	center_screen_x = SCREEN_WIDTH // 2
 	btn_w, btn_h = 220, 44
+	left_x = center_screen_x - btn_w - 12
+	right_x = center_screen_x + 12
 	return [
-		menu_stuff.Button((center_screen_x - btn_w // 2, 580, btn_w, btn_h), "Return", menu_font, "back"),
+		menu_stuff.Button((left_x, 580, btn_w, btn_h), "Reset Defaults", menu_font, "reset_car_defaults"),
+		menu_stuff.Button((right_x, 580, btn_w, btn_h), "Return", menu_font, "back"),
 	]
 
 start_menu_buttons = create_start_menu_buttons()
@@ -173,7 +177,10 @@ def create_cars(car_count):
 		apply_car_properties(cars[-1])
 	return cars
 
-
+player_enabled = False
+player_car = Car(*track_object.get_start_pos())
+player_steering = 0.0
+apply_car_properties(player_car)
 cars = create_cars(car_count)
 best_car = cars[0]
 
@@ -210,6 +217,7 @@ def apply_car_changes():
 		car_properties[field.key] = field.get_number(car_properties[field.key])
 	for car_to_change in cars:
 		apply_car_properties(car_to_change)
+	apply_car_properties(player_car)
 	if car_properties["ray_count"] != old_ray_count:
 		for car in cars:
 			car.reset(*track_object.get_start_pos())
@@ -242,6 +250,7 @@ while running:
 						track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, custom_waypoints=editor_waypoints)
 						for car in cars:
 							car.reset(*track_object.get_start_pos())
+						player_car.reset(*track_object.get_start_pos())
 						skid_surface.fill((0, 0, 0, 0))
 						timer = time_per_generation
 						highest_fitness = 0.0
@@ -287,6 +296,15 @@ while running:
 					simulation_speed = 40
 				elif event.key == pygame.K_h:
 					show_best_car = not show_best_car
+				elif event.key == pygame.K_p:
+					player_enabled = not player_enabled
+					player_car.reset(*track_object.get_start_pos())
+					status_message = f"Player Mode: {"ON" if player_enabled else "OFF"}"
+					status_timer = 90
+				elif event.key == pygame.K_r:
+					timer = 0.0
+					status_message = "Reset"
+					status_timer = 90
 		elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
 			if menu_cooldown > 0:
 				continue
@@ -307,6 +325,7 @@ while running:
 							track_object = track.Track(SCREEN_WIDTH, SCREEN_HEIGHT, current_track_index)
 							for car in cars:
 								car.reset(*track_object.get_start_pos())
+							player_car.reset(*track_object.get_start_pos())
 							timer = time_per_generation
 							highest_fitness = 0
 							skid_surface.fill((0, 0, 0, 0))
@@ -400,7 +419,15 @@ while running:
 			elif game_state == "car_options":
 				for button in car_options_menu_buttons:
 					if button.is_clicked(event.pos):
-						if button.action == "back":
+						if button.action == "reset_car_defaults":
+							car_properties.update(DEFAULT_CAR_PROPERTIES)
+							for field in car_options_menu_input_fields:
+								field.text = str(car_properties[field.key])
+							apply_car_changes()
+							status_message = "Reset car defaults"
+							status_timer = 90
+							break
+						elif button.action == "back":
 							apply_car_changes()
 							game_state = "options"
 							menu_cooldown = 10
@@ -465,7 +492,7 @@ while running:
 					pygame.draw.line(skid_surface, skid_color, old_right, new_right, 3)
 			
 			# Car evolution
-			if timer <= 0.0 or not any(car.alive for car in cars):
+			if timer <= 0.0 or not any(car.alive for car in cars) and not (player_enabled and player_car.alive):
 				cars_ranked_by_fitness = sorted(cars, key=lambda c: c.fitness, reverse=True)
 				survivors = cars_ranked_by_fitness[:max(1, len(cars_ranked_by_fitness) // 8)]
 				for i, car in enumerate(cars):
@@ -480,12 +507,53 @@ while running:
 						parent_car = random.choice(survivors)
 						car.brain = parent_car.brain.mutated_copy(mutation_rate=0.15)
 					car.reset(*track_object.get_start_pos())
+				player_car.reset(*track_object.get_start_pos())
 				skid_surface.fill((0, 0, 0, 0))
 				timer = time_per_generation
 				generation_count += 1
 				print("Timer reset")
 			timer -= 1 / 60
 	
+			if player_enabled and player_car.alive:
+				if not track_object.is_on_track(player_car.x, player_car.y):
+					player_car.alive = False
+				else:
+					keys = pygame.key.get_pressed()
+					dt = 1 / 60
+					
+					player_throttle = float(keys[pygame.K_w]) - float(keys[pygame.K_s])
+					
+					steer_input = float(keys[pygame.K_d]) - float(keys[pygame.K_a])
+					steer_speed = 5.0
+					return_speed = 10.0
+					
+					if steer_input != 0:
+						if steer_input * player_steering < 0:
+							rate = return_speed
+						else:
+							rate = steer_speed
+						player_steering += steer_input * rate * dt
+						player_steering = max(-1.0, min(1.0, player_steering))
+					else:
+						if abs(player_steering) <= return_speed * dt:
+							player_steering = 0.0
+						elif player_steering > 0:
+							player_steering -= return_speed * dt
+						else:
+							player_steering += return_speed * dt
+					
+					player_car.next_checkpoint_index, player_car.lap_completed = track_object.count_checkpoints(player_car.x, player_car.y, player_car.next_checkpoint_index)
+					if player_car.lap_completed > 0:
+						player_car.laps_completed += 1
+					
+					player_car.update(player_throttle, player_steering, 1 / 60)
+					
+					if player_car.is_drifting:
+						old_left, old_right = player_car.previous_rear_wheel_pos
+						new_left, new_right = player_car.get_rear_wheel_pos()
+						pygame.draw.line(skid_surface, (20, 20, 22, 75), old_left, new_left, 3)
+						pygame.draw.line(skid_surface, (20, 20, 22, 75), old_right, new_right, 3)
+					
 	# Drawing cars and track
 	screen.fill((0, 0, 0))
 	track_object.draw(screen)
@@ -507,6 +575,8 @@ while running:
 		if car is not best_car:
 			car.draw(screen)
 	best_car.draw(screen, (255, 0, 0))
+	if player_enabled:
+		player_car.draw(screen, (50, 220, 80))
 	
 	# HUD
 	cars_alive_count = sum(1 for car in cars if car.alive)
@@ -526,7 +596,7 @@ while running:
 		text_surface = font.render(line, True, (255, 255, 255))
 		screen.blit(text_surface, (16, 16 + i * 28))
 	
-	# Pause menu
+	# Pause menu and other stuff
 	if game_state == "paused":
 		screen.blit(pause_overlay, (0, 0))
 		

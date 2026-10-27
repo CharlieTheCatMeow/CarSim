@@ -20,9 +20,11 @@ Also, you can press ESC to enter a pause menu to access the rest of the menus.
 - ESC: Enter the pause menu
 
 ## Screenshot!
-
-
+![Screenshot](Assets/CarSim_Screenshot.png)
 
 ## Why I made this (this section is sometimes needed I think)
 I was interested in doing something involving neural networks, so I decided to do something that resembles this project.
-I did this in 2d to not overcomplicate things. It turned out quite well. 
+I did this in 2d to not overcomplicate things. It turned out quite well I think :3
+
+## AI Usage
+A bit but not much, just some explaining of mechanics and bug fixing if I got stuck.
